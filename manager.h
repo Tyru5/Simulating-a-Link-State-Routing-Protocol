@@ -13,13 +13,25 @@
 #include <sstream>
 
 
+using std::string;
+using std::vector;
 
 class Manager {
 
  public:
   
-  Manager(){} // default constructor
+ Manager( const string& _input_file): input_file( _input_file ){} // default constructor
 
+  // public member funcitons:
+  void parseInputFile();
+
+
+
+ protected:
+  string input_file;
+  int num_nodes;
+
+  vector < vector<int> > network_table;
 
   
 };
