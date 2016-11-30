@@ -46,9 +46,12 @@ void Manager::parseInputFile(){
   int row = 0;
   int col = 0;
   while( getline( file, line ) ){
-    iss << line;
-    cout << iss.str() << endl;
+
+    if( line == "-1") break;
     
+    iss << line;
+    if(DEBUG) cout << iss.str() << endl;
+
     iss >> network_table[row][col];
     col++; // col 1
     iss >> network_table[row][col];
@@ -61,11 +64,10 @@ void Manager::parseInputFile(){
     // clearing the stringstream:
     iss.str( string() );
     iss.clear();
-
-    if( line == "-1") break;
     
   } // end of while statement.
 
+  cout << "printing out the table now! " << endl;
   for(int i = 0; i < num_nodes; i++){
     for(int c = 0; c < 3; c++){
       cout << network_table[i][c] << " ";
