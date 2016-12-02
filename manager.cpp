@@ -33,6 +33,7 @@ void Manager::configureRouters() {
     char recv_buffer[11];
     recv(client_fd, &recv_buffer, sizeof(recv_buffer), 0);
     cout << "router " << recv_buffer << " connected." << endl;
+    //network_table.get(atoi(recv_buffer));
     send(client_fd, "test", sizeof("test"),0);
   }
 }
@@ -142,7 +143,8 @@ void Manager::spawnRouters( char* argv[] ){
       
       //a return value of zero on a fork() means that it is running in new child process. On success, the PID of the child is returned in the parent, and 0 is returned in the child
       //run the exec() unix command to run the expoxch.c program.
-      execl("./router","router", argv[1], NULL);
+      
+      execl("./router","router", std::to_string(i).c_str(), NULL);
       
     }
     else{/*parent process*/
