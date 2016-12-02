@@ -12,8 +12,12 @@ int main(int argc, char* argv[]) {
 void handle_router_connections(int sock_fd) {
     struct sockaddr_in client;
     socklen_t clientLength;
- 	listen(sock_fd, 1);	
-	int clientDesc = accept(sock_fd, (struct sockaddr*)&client, &clientLength);   
+ 	listen(sock_fd, 1);
+    while(1) {
+        int client_fd = accept(sock_fd, (struct sockaddr*)&client, &clientLength);   
+        pthread_t threadId;
+        pthread_create(&threadId, NULL, handle_connection, (void*)&client_fd);
+    }
 }
 
 int create_router_listener(int port) {
