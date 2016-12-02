@@ -13,20 +13,29 @@ int main(int argc, char* argv[]){
   /* The network is managed by a process called the manager. 
      The manager takes as argument a single file. You will run the manager as follows.
    */
-
+  
   Manager network_manager( argv[1] );
   network_manager.parseInputFile();
   
-  int sock_fd = network_manager.createRouterListener(MANAGER_PORT);  
-  //pthread_t threadId;
-  //pthread_create(&threadId, NULL, handle_router_connections, (void*)&router_socket);
-   struct sockaddr_in client;
-   socklen_t clientLength;
-   listen(sock_fd, 1);
-   int client_fd = accept(sock_fd, (struct sockaddr*)&client, &clientLength);
+  network_manager.createRouterListener(MANAGER_PORT);  
+  // Spawn each router for the Network Topology:
+  network_manager.spawnRouters( argv );
+  network_manager.configureRouters(); 
   return 0;
 }
 
+void Manager::configureRouters() {
+  socklen_t clientLength;
+  struct sockaddr_in client;
+  for(int idx = 0; idx < num_nodes; idx++) {
+    int client_fd = accept(sock_fd, (struct sockaddr*)&client, &clientLength);
+    clients.push_back(client_fd);
+    char recv_buffer[11];
+    recv(client_fd, &recv_buffer, sizeof(recv_buffer), 0);
+    cout << "router " << recv_buffer << " connected." << endl;
+    send(client_fd, "test", sizeof("test"),0);
+  }
+}
 
 void Manager::parseInputFile(){
 
@@ -72,7 +81,7 @@ void Manager::parseInputFile(){
     
   } // end of while statement.
 
-  cout << "printing out the table now! " << endl;
+  // cout << "printing out the table now! " << endl;
   for(int i = 0; i < num_nodes; i++){
     for(int c = 0; c < 3; c++){
       cout << network_table[i][c] << " ";
@@ -93,19 +102,67 @@ void handle_router_connections(int sock_fd) {
 }
 
 int Manager::createRouterListener(int port) {
-    int socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+    sock_fd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in server;
     int one = 1;
 
-    setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int));
+    setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int));
     server.sin_family = AF_INET;
     server.sin_port = htons(port);
     inet_pton(AF_INET, "127.0.0.1", &server.sin_addr.s_addr);
     
-    if( bind(socket_desc, (struct sockaddr *) &server, sizeof(server)) == -1 ){ // means it failed to bind... 0 on success, -1 if not
+    if( bind(sock_fd, (struct sockaddr *) &server, sizeof(server)) == -1 ){ // means it failed to bind... 0 on success, -1 if not
       cout << "Couldn't bind the port to the socket!" << endl;
       exit(1);
     }
     
-    return socket_desc;
+    listen(sock_fd, 1);
+    return sock_fd;				 
+}
+
+// The manager will spawn one Unix process for each router in the network.
+void Manager::spawnRouters( char* argv[] ){
+
+
+  for(int i = 0; i < num_nodes; i++){
+
+    //delcaring and initializing the fork sytem call:
+    //fork a child process
+    pid_t routerN = fork();
+
+
+    //Checking -> Errors and parent or child status:
+    if( routerN < 0){
+      
+      //opps, something went wrong and the fork() couldn't happen!
+      printf("Sorry! Something went wrong. Couldn't fork() the child process. Exiting now...\n");
+      
+    }
+    else if( routerN == 0 ){/*child process*/
+      
+      //a return value of zero on a fork() means that it is running in new child process. On success, the PID of the child is returned in the parent, and 0 is returned in the child
+      //run the exec() unix command to run the expoxch.c program.
+      execl("./router","router", argv[1], NULL);
+      
+    }
+    else{/*parent process*/
+      
+      //run the wait() unix system call that waits for a program to finish/change state
+/*      printf("IN PARENT:Child's PID =  %d\n", routerN );
+      int status;
+      waitpid( routerN, &status, 0 );
+      //checking status codes:
+      if ( WIFEXITED(status) ){ // returns true if the child terminated normally
+	if(status == 0){
+	  printf("IN PARENT: Child's exit code: %d (OK)\n", WEXITSTATUS(status));
+	}
+	else{
+	  printf("IN PARENT: Child's exit code: %d (error)\n", WEXITSTATUS(status));
+	}
+      }
+      printf("IN PARENT: Parent (PID = %d): done\n",getppid());
+*/    }
+    
+  } // end of for
+  
 }
