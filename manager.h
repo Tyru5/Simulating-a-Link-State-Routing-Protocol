@@ -12,6 +12,10 @@
 #include <fstream>
 #include <sstream>
 
+// For Fork() -- Child processes
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 using std::string;
 using std::vector;
@@ -24,7 +28,7 @@ class Manager {
 
   // public member funcitons:
   void parseInputFile();
-
+  void spawnRouters( char* argv[] );
 
 
  protected:
