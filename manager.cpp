@@ -6,8 +6,6 @@
 // namespace
 using namespace std;
 
-#define DEBUG false
-
 int main(int argc, char* argv[]){
 
   /* The network is managed by a process called the manager. 
@@ -27,6 +25,7 @@ int main(int argc, char* argv[]){
 void Manager::configureRouters() {
   socklen_t clientLength;
   struct sockaddr_in client;
+  clientStatus.resize(num_nodes);
   for(int idx = 0; idx < num_nodes; idx++) {
     int client_fd = accept(sock_fd, (struct sockaddr*)&client, &clientLength);
     clients.push_back(client_fd);
@@ -34,7 +33,15 @@ void Manager::configureRouters() {
     recv(client_fd, &recv_buffer, sizeof(recv_buffer), 0);
     cout << "router " << recv_buffer << " connected." << endl;
     //network_table.get(atoi(recv_buffer));
-    send(client_fd, "test", sizeof("test"),0);
+    int router_number = atoi(recv_buffer);
+    vector<int> table = network_table.at(router_number);
+    int size = table.size();
+    const char* sizeStr = to_string(size).c_str();
+    send(client_fd, &size, sizeof(size), 0);
+    send(client_fd, &table[0], sizeof(int)*size, 0);
+    char buffer[sizeof("Ready!")];
+    recv(client_fd, &buffer, sizeof(buffer) , 0);
+    clientStatus.at(idx) = SETUP_PHASE;
   }
 }
 

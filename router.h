@@ -7,8 +7,20 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <vector>
+#include "project3.h"
 
-void router_process(int router_number);
-int create_router_socket(int port);
-int create_manager_connection();
+class Router {
+public:
+    Router(const int router_number) { this->router_number = router_number; port = MANAGER_PORT + router_number;}
+    void routerProcess();
+protected: 
+    int router_number;
+    int port;
+    int createRouterSocket();
+    int createManagerConnection();
+    std::vector<int> table;
+    void checkError(int status);
+};
+
 #endif

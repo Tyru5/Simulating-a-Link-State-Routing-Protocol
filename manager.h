@@ -47,5 +47,6 @@ class Manager {
   vector < vector<int> > network_table;
   int sock_fd;
   vector <int> clients; 
+  vector<int> clientStatus;
 };
 #endif //MANAGER_H_INCLUDE
