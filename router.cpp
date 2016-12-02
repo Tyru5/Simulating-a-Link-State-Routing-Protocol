@@ -11,20 +11,24 @@ int main(int argc, char* argv[]) {
     int router_number = atoi(argv[1]);
     Router router(router_number);
     router.routerProcess();
+    cout << "This is the end!!" << endl;
     return 0;
 }
 
 void Router::routerProcess() {
-    int router_socket = createRouterSocket();
+    router_socket = createRouterSocket();
     cout << "Created a UDP socket on " << MANAGER_PORT+router_number << " with the sock_filedescriptor " << router_socket << endl;
     int manager_socket = createManagerConnection();
-    const char* router_number_str = to_string(router_number).c_str();
     cout << "router number: " << router_number << endl;
-    int status = send(manager_socket, router_number_str, sizeof(router_number_str), 0);
+    
+    int status = send(manager_socket, &router_number, sizeof(router_number), 0);
     if(status == -1) {
         cout << "Failed to send the manager my router number :(" << endl;
         exit(1);
     }
+    
+    int numberOfIncomingConnections = 0;
+    status = recv(manager_socket, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
     
     int size = 0;
     status = recv(manager_socket, &size, sizeof(size), 0);
@@ -34,12 +38,30 @@ void Router::routerProcess() {
     
     if(DEBUG)
     {
+        cout << "Number of incoming connections: " << numberOfIncomingConnections << endl;
+        cout << "Connection table size: " << size << endl;
         cout << "printing table for " << router_number << " ";
         for(int idx = 0; idx < table.size(); idx++) cout << table.at(idx) << " ";
         cout << endl;
     }
     
     status = send(manager_socket, "Ready!", sizeof("Ready!"), 0); 
+    
+    char* startCommand = "Go!";
+    
+    status = recv(manager_socket, startCommand, sizeof(startCommand), 0);
+    
+    cout << startCommand << endl;
+    
+    cout << "Starting to setup UDP connections" << endl;
+    
+    for(int idx = 0; idx < table.size(); idx++) {
+            //TODO: UDP sendto, using router_socket. Creates  connections with specified nodes.
+    }
+    
+    for(int idx = 0; idx < numberOfIncomingConnections; idx++) {
+            // TODO: UDP recvfrom, using router_socket. Recieves  connections from nodes.
+    }
 }
 
 int Router::createManagerConnection() {

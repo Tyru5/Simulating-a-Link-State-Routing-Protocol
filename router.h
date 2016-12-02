@@ -16,6 +16,7 @@ public:
     void routerProcess();
 protected: 
     int router_number;
+    int router_socket;
     int port;
     int createRouterSocket();
     int createManagerConnection();

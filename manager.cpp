@@ -28,25 +28,41 @@ int main(int argc, char* argv[]){
 }
 
 void Manager::configureRouters() {
-  socklen_t clientLength;
-  struct sockaddr_in client;
   clientStatus.resize(num_nodes);
+  
+  // Start phase 1: Send connection vectors 
   for(int idx = 0; idx < num_nodes; idx++) {
+    struct sockaddr_in client;
+    socklen_t clientLength = sizeof(client);
     int client_fd = accept(sock_fd, (struct sockaddr*)&client, &clientLength);
+    if(client_fd < 0) {
+        perror("ERROR on accept");
+        exit(1);
+    }
     clients.push_back(client_fd);
-    char recv_buffer[11];
-    recv(client_fd, &recv_buffer, sizeof(recv_buffer), 0);
-    cout << "router " << recv_buffer << " connected." << endl;
-    //network_table.get(atoi(recv_buffer));
-    int router_number = atoi(recv_buffer);
+    cout << "client_fd: " << client_fd << endl;
+    
+    int router_number = 0;
+    recv(client_fd, &router_number, sizeof(router_number), 0);
+    cout << "Managing: " << router_number << endl;
+    
     vector<int> table = network_table.at(router_number);
+    int numberOfIncomingConnections = 5; // TODO: Tyrus, put the number of incoming connections here for a node. 
     int size = table.size();
-    const char* sizeStr = to_string(size).c_str();
+    cout << "table.size(): " << size << endl;
+    send(client_fd, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
     send(client_fd, &size, sizeof(size), 0);
     send(client_fd, &table[0], sizeof(int)*size, 0);
+    
     char buffer[sizeof("Ready!")];
     recv(client_fd, &buffer, sizeof(buffer) , 0);
     clientStatus.at(idx) = SETUP_PHASE;
+  }
+  
+  // Start phase 2: setting up UDP connections
+  for(int idx = 0; idx < num_nodes; idx++) {
+    int client_fd = clients.at(idx);
+    send(client_fd, "Go!", sizeof("Go!"), 0);
   }
 }
 
@@ -119,17 +135,6 @@ void Manager::parseInputFile(){
   
 }
 
-void handle_router_connections( int sock_fd ) {
-    struct sockaddr_in client;
-    socklen_t clientLength;
- 	listen(sock_fd, 1);
-    while(1) {
-        int client_fd = accept(sock_fd, (struct sockaddr*)&client, &clientLength);   
-        //pthread_t threadId;
-        //pthread_create(&threadId, NULL, handle_connection, (void*)&client_fd);
-    }
-}
-
 int Manager::createRouterListener(int port) {
     sock_fd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in server;
@@ -145,7 +150,7 @@ int Manager::createRouterListener(int port) {
       exit(1);
     }
     
-    listen(sock_fd, 1);
+    listen(sock_fd, 127);
     return sock_fd;				 
 }
 
