@@ -6,7 +6,10 @@
 // namespace
 using namespace std;
 
-#define DEBUG false
+#define DEBUG true
+
+/* Function declarations */
+void printNT( const vector< vector<int>>& tbl, const int& edges );
 
 int main(int argc, char* argv[]){
 
@@ -19,8 +22,11 @@ int main(int argc, char* argv[]){
   
   network_manager.createRouterListener(MANAGER_PORT);  
   // Spawn each router for the Network Topology:
-  network_manager.spawnRouters( argv );
-  network_manager.configureRouters(); 
+  network_manager.spawnRouters();
+  network_manager.configureRouters();
+
+
+  
   return 0;
 }
 
@@ -54,44 +60,60 @@ void Manager::parseInputFile(){
   node_stream << line;
   node_stream >> num_nodes;
 
+  if(DEBUG) cout << "num_nodes = " << num_nodes << endl;
+
+  while( getline( file, line ) ){
+
+    if( line == "-1") break;
+
+    num_edges++;
+    num_lines++; // these two are essentially the same thing haha...
+    
+  } // end of while statement.
+
+  /* Second pass through of the file.. i know, not the best */
   // allocate network table size:
-  network_table = vector< vector<int> >( num_nodes, vector<int>(3, -1) );
+  network_table = vector< vector<int> >( num_lines, vector<int>(3, -1) );
+  
+  ifstream file2( input_file );
+
+  // Get how many nodes there are in the file:
+  stringstream node_stream2;
+  int discard = 0;
+  getline( file2, line );
+  node_stream2 << line;
+  node_stream2 >> discard;
   
   stringstream iss;
   int row = 0;
   int col = 0;
-  while( getline( file, line ) ){
+  while( getline( file2, line ) ){
 
     if( line == "-1") break;
-    
+
     iss << line;
-    if(DEBUG) cout << iss.str() << endl;
+    // cout << iss.str() << endl;
 
     iss >> network_table[row][col];
     col++; // col 1
     iss >> network_table[row][col];
     col++; // col 2
     iss >> network_table[row][col];
-
     row++;
     col = 0; // reset
-    
+
     // clearing the stringstream:
     iss.str( string() );
     iss.clear();
-    
+
   } // end of while statement.
 
-  // cout << "printing out the table now! " << endl;
-  for(int i = 0; i < num_nodes; i++){
-    for(int c = 0; c < 3; c++){
-      cout << network_table[i][c] << " ";
-    }
-    cout << endl;
-  }
+  if(DEBUG) printNT( network_table, num_edges );
+  
+  
 }
 
-void handle_router_connections(int sock_fd) {
+void handle_router_connections( int sock_fd ) {
     struct sockaddr_in client;
     socklen_t clientLength;
  	listen(sock_fd, 1);
@@ -122,7 +144,7 @@ int Manager::createRouterListener(int port) {
 }
 
 // The manager will spawn one Unix process for each router in the network.
-void Manager::spawnRouters( char* argv[] ){
+void Manager::spawnRouters(){
 
 
   for(int i = 0; i < num_nodes; i++){
@@ -150,7 +172,7 @@ void Manager::spawnRouters( char* argv[] ){
     else{/*parent process*/
       
       //run the wait() unix system call that waits for a program to finish/change state
-/*      printf("IN PARENT:Child's PID =  %d\n", routerN );
+      /*      printf("IN PARENT:Child's PID =  %d\n", routerN );
       int status;
       waitpid( routerN, &status, 0 );
       //checking status codes:
@@ -166,5 +188,22 @@ void Manager::spawnRouters( char* argv[] ){
 */    }
     
   } // end of for
+  
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~HELPER FUNCTIONS~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+/* Function that prints out the network_table AND number of edges */
+void printNT( const vector< vector<int>>& tbl, const int& edges ){
+  
+  // cout << "printing out the table now! " << endl;
+  for(int i = 0; i < static_cast<int>(tbl.size()); i++){
+    for(int c = 0; c < static_cast<int>(tbl[i].size()); c++){
+      cout << tbl[i][c] << " ";
+    }
+    cout << endl;
+  }
+
+  cout << "The number of edges in the network = " << edges << endl;
   
 }
