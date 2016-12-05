@@ -58,10 +58,9 @@ void Manager::configureRouters() {
 			//cout << tbl[i][c] << " ";
 			if(network_table[i][c] == router_number) {
 				vector<int> table = network_table.at(i);
-				cout<<"Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+				//cout<<"Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
 				int size = table.size();
-				cout << "table.size(): " << size << endl;
-				
+				cout << "table.size(): " << size << endl;			
 				numberOfIncomingConnections++;
 				route_table.push_back(table);
 			} 
@@ -74,25 +73,19 @@ void Manager::configureRouters() {
     send(client_fd, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
 	send(client_fd, &size, sizeof(size), 0);
 	
-	//For every tuple send it to the router.
-	
+	//For every tuple send it to the router 
 	if(!route_table.empty()) {
+		cout<<"Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
 		for(int j = 0; j< static_cast<int>(route_table.size()); j++){
-				send(client_fd, &route_table[0], sizeof(int)*size, 0);
+				vector<int> table1 = route_table.at(j);
+				cout<<"sending.. " << table1[0] << " " << table1[1] << " " << table1[2] << " to router: " << router_number << endl; 
+				send(client_fd, &table1[0], sizeof(int)*size, 0);
 		}
 		
-	} 
-		
-	/*
-    vector<int> table = network_table.at(router_number);
-    
-    
-    
-    
-    
-    
-    
-    
+	} else {
+		cout<<"Table for " << router_number << " IS EMPTY" <<endl;
+	}
+	/*	
     char buffer[sizeof("Ready!")];
     recv(client_fd, &buffer, sizeof(buffer) , 0);
     clientStatus.at(idx) = SETUP_PHASE;
@@ -102,8 +95,9 @@ void Manager::configureRouters() {
   for(int idx = 0; idx < num_nodes; idx++) {
     int client_fd = clients.at(idx);
     send(client_fd, "Go!", sizeof("Go!"), 0);
-    */
+   */ 
   }
+ 
   
 }
 

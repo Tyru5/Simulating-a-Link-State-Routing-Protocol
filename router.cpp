@@ -32,6 +32,7 @@ void Router::routerProcess() {
     int numberOfIncomingConnections = 0;
     status = recv(manager_socket, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
     
+    cout<<numberOfIncomingConnections<<endl;
     
     int size = 0;
     status = recv(manager_socket, &size, sizeof(size), 0);
@@ -39,10 +40,13 @@ void Router::routerProcess() {
     
     
     for(int i = 0; i < numberOfIncomingConnections; i++) {
+		 cout<<"here"<<endl;
 		 status = recv(manager_socket, &table[0], sizeof(int)*size, 0);
-		 cout<<"Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+		 cout<<"Recieved!: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+		 // Add each tuple to a vector < vector <int> >
+		 
 	}
-
+	
   
     if(DEBUG)
     {
@@ -54,7 +58,7 @@ void Router::routerProcess() {
 			//cout << endl;
 		}
     }
-    /*
+	/*
     status = send(manager_socket, "Ready!", sizeof("Ready!"), 0); 
     
     char* startCommand = "Go!";

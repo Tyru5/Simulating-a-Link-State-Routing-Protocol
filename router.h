@@ -10,6 +10,8 @@
 #include <vector>
 #include "project3.h"
 
+//using std::vector;
+
 class Router {
 public:
     Router(const int router_number) { this->router_number = router_number; port = MANAGER_PORT + router_number;}
@@ -22,6 +24,7 @@ protected:
     int createManagerConnection();
     std::vector<int> table;
     void checkError(int status);
+    //vector < vector<int> > rnetwork_table;
    
 };
 
