@@ -74,17 +74,15 @@ void Manager::configureRouters() {
 	send(client_fd, &size, sizeof(size), 0);
 	
 	//For every tuple send it to the router 
-	if(!route_table.empty()) {
-		cout<<"Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
-		for(int j = 0; j< static_cast<int>(route_table.size()); j++){
-				vector<int> table1 = route_table.at(j);
-				cout<<"sending.. " << table1[0] << " " << table1[1] << " " << table1[2] << " to router: " << router_number << endl; 
-				send(client_fd, &table1[0], sizeof(int)*size, 0);
-		}
-		
-	} else {
-		cout<<"Table for " << router_number << " IS EMPTY" <<endl;
-	}
+	cout<<"Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
+	for(int j = 0; j< static_cast<int>(route_table.size()); j++){
+			vector<int> table = route_table.at(j);
+			cout<<"sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 
+			
+			//*****TROUBLE SENDING EACH VEC TO THE APPROPRIATE ROUTER ******		
+			send(client_fd, &table[0], sizeof(int)*size, 0);
+	}	
+	
 	/*	
     char buffer[sizeof("Ready!")];
     recv(client_fd, &buffer, sizeof(buffer) , 0);

@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
     int router_number = atoi(argv[1]);
     Router router(router_number);
     router.routerProcess();
-    cout << "This is the end!!" << endl;
+    //cout << "This is the end!!" << endl;
     return 0;
 }
 
@@ -32,27 +32,27 @@ void Router::routerProcess() {
     int numberOfIncomingConnections = 0;
     status = recv(manager_socket, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
     
-    cout<<numberOfIncomingConnections<<endl;
-    
     int size = 0;
     status = recv(manager_socket, &size, sizeof(size), 0);
     table.resize(size);
-    
-    
-    for(int i = 0; i < numberOfIncomingConnections; i++) {
-		 cout<<"here"<<endl;
-		 status = recv(manager_socket, &table[0], sizeof(int)*size, 0);
-		 cout<<"Recieved!: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
-		 // Add each tuple to a vector < vector <int> >
-		 
-	}
+   
 	
+    for(int i = 0; i < numberOfIncomingConnections; i++) {
+		 cout<<"Recieving connection from: " << router_number << endl;
+		 status = recv(manager_socket, &table[0], sizeof(int)*size, 0);
+		 //cout<<"status for recv is: " << status << " for router "<< router_number <<endl;
+		 // Add each tuple to a vector < vector <int> >
+		 //status = recv(manager_socket,&table,sizeof(int)*size,0);
+		 //cout<<"Recieved!: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+
+	}
+
   
     if(DEBUG)
     {
-        cout << "Number of incoming connections: " << numberOfIncomingConnections << endl;
-        cout << "Connection table size: " << size << endl;
-        cout << "printing table for " << router_number << ": " <<endl;
+        //cout << "Number of incoming connections: " << numberOfIncomingConnections << endl;
+        //cout << "Connection table size: " << size << endl;
+        //cout << "printing table for " << router_number << ": " <<endl;
         for(int idx = 0; idx < table.size(); idx++) {
 			//cout << table.at(idx) << " ";
 			//cout << endl;
