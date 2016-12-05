@@ -49,7 +49,7 @@ void Manager::configureRouters() {
     
 	int numberOfIncomingConnections = 0;
 	
-	int size = 0;
+	int size = 3;
 	
     route_table.clear();
     for(int i = 0; i < static_cast<int>(network_table.size()); i++){		 
@@ -57,9 +57,9 @@ void Manager::configureRouters() {
 			//cout << tbl[i][c] << " ";
 			if(network_table[i][c] == router_number) {
 				vector<int> table = network_table.at(i);
-				//cout<<"Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
-				int size = table.size();
-				cout << "Manager: table.size(): " << size << endl;			
+				cout<<"Manager: Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+				//int size = table.size();
+						
 				numberOfIncomingConnections++;
 				route_table.push_back(table);
 			} 
@@ -69,13 +69,15 @@ void Manager::configureRouters() {
 	}
 	
 	//How many tuples are being sent to the router?	
+	cout<<"Manager: numberOfIncomingConnections: " << numberOfIncomingConnections<<endl;
     send(client_fd, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
+	cout << "Manager: table.size(): " << size << endl;	
 	send(client_fd, &size, sizeof(size), 0);
 	
 	//For every tuple send it to the router 
 	if(!route_table.empty()) {
-		for(int j = 0; j< static_cast<int>(route_table.size()); j++){
-				cout<<"Manager: Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
+		cout<<"Manager: Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
+		for(int j = 0; j< static_cast<int>(route_table.size()); j++){			
 				vector<int> table = route_table.at(j);
 				cout<<"Manager: sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 
 			
