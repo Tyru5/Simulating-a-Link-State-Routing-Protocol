@@ -7,7 +7,7 @@ int main(int argc, char* argv[]) {
         cout << "Incorrect program arguments. Example: ./router 1" << endl; 
         exit(1);
     }
-    cout << "argv:" << argv[1] << endl;
+    cout << "Router: argv:" << argv[1] << endl;
     int router_number = atoi(argv[1]);
     Router router(router_number);
     router.routerProcess();
@@ -17,9 +17,9 @@ int main(int argc, char* argv[]) {
 
 void Router::routerProcess() {
     router_socket = createRouterSocket();
-    cout << "Created a UDP socket on " << MANAGER_PORT+router_number << " with the sock_filedescriptor " << router_socket << endl;
+    cout << "Router: Created a UDP socket on " << MANAGER_PORT+router_number << " with the sock_filedescriptor " << router_socket << endl;
     int manager_socket = createManagerConnection();
-    cout << "router number: " << router_number << endl;
+    cout << "Router: router number: " << router_number << endl;
     
     int status = send(manager_socket, &router_number, sizeof(router_number), 0);
     if(status == -1) {
@@ -38,12 +38,11 @@ void Router::routerProcess() {
    
 	
     for(int i = 0; i < numberOfIncomingConnections; i++) {
-		 cout<<"Recieving connection from: " << router_number << endl;
+		 cout<<"Router: Recieving connection from: " << router_number << endl;
 		 status = recv(manager_socket, &table[0], sizeof(int)*size, 0);
-		 //cout<<"status for recv is: " << status << " for router "<< router_number <<endl;
 		 // Add each tuple to a vector < vector <int> >
-		 //status = recv(manager_socket,&table,sizeof(int)*size,0);
-		 //cout<<"Recieved!: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+		 // ***** FOR SOME REASON ITS NOT RECIEVING THE table[0] ********
+		 cout<<"Router: Recieved " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
 
 	}
 

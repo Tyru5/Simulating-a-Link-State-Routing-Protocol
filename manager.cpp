@@ -40,11 +40,11 @@ void Manager::configureRouters() {
         exit(1);
     }
     clients.push_back(client_fd);
-    cout << "client_fd: " << client_fd << endl;
+    cout << "Manager: client_fd: " << client_fd << endl;
     
     int router_number = 0;
     recv(client_fd, &router_number, sizeof(router_number), 0);
-    cout << "Managing: " << router_number << endl;
+    cout << "Manager: Managing: " << router_number << endl;
     
     
 	int numberOfIncomingConnections = 0;
@@ -52,15 +52,14 @@ void Manager::configureRouters() {
 	int size = 0;
 	
     route_table.clear();
-    for(int i = 0; i < static_cast<int>(network_table.size()); i++){
-		 
+    for(int i = 0; i < static_cast<int>(network_table.size()); i++){		 
 		for(int c = 0; c < static_cast<int>(network_table[i].size() - 1); c++){
 			//cout << tbl[i][c] << " ";
 			if(network_table[i][c] == router_number) {
 				vector<int> table = network_table.at(i);
 				//cout<<"Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
 				int size = table.size();
-				cout << "table.size(): " << size << endl;			
+				cout << "Manager: table.size(): " << size << endl;			
 				numberOfIncomingConnections++;
 				route_table.push_back(table);
 			} 
@@ -74,14 +73,18 @@ void Manager::configureRouters() {
 	send(client_fd, &size, sizeof(size), 0);
 	
 	//For every tuple send it to the router 
-	cout<<"Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
-	for(int j = 0; j< static_cast<int>(route_table.size()); j++){
-			vector<int> table = route_table.at(j);
-			cout<<"sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 
+	if(!route_table.empty()) {
+		for(int j = 0; j< static_cast<int>(route_table.size()); j++){
+				cout<<"Manager: Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
+				vector<int> table = route_table.at(j);
+				cout<<"Manager: sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 
 			
-			//*****TROUBLE SENDING EACH VEC TO THE APPROPRIATE ROUTER ******		
-			send(client_fd, &table[0], sizeof(int)*size, 0);
-	}	
+				//*****TROUBLE SENDING EACH VEC TO THE APPROPRIATE ROUTER ******		
+				send(client_fd, &table[0], sizeof(int)*size, 0);
+		}	
+	} else {
+		cout<<"Manager: Table for " << router_number << " is empty"<<endl;
+	}
 	
 	/*	
     char buffer[sizeof("Ready!")];
