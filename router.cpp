@@ -26,26 +26,35 @@ void Router::routerProcess() {
         cout << "Failed to send the manager my router number :(" << endl;
         exit(1);
     }
-    /*
+    
+    
+    // Recive the size of many many pairs it has in the table
     int numberOfIncomingConnections = 0;
     status = recv(manager_socket, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
+    
     
     int size = 0;
     status = recv(manager_socket, &size, sizeof(size), 0);
     table.resize(size);
-
-    status = recv(manager_socket, &table[0], sizeof(int)*size, 0);
     
+    
+    for(int i = 0; i < numberOfIncomingConnections; i++) {
+		 status = recv(manager_socket, &table[0], sizeof(int)*size, 0);
+		 cout<<"Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+	}
+
+  
     if(DEBUG)
     {
         cout << "Number of incoming connections: " << numberOfIncomingConnections << endl;
         cout << "Connection table size: " << size << endl;
-        cout << "printing table for " << router_number << ": ";
-        for(int idx = 0; idx < table.size(); idx++) 
-			cout << table.at(idx) << " ";
-			cout << endl;
+        cout << "printing table for " << router_number << ": " <<endl;
+        for(int idx = 0; idx < table.size(); idx++) {
+			//cout << table.at(idx) << " ";
+			//cout << endl;
+		}
     }
-    
+    /*
     status = send(manager_socket, "Ready!", sizeof("Ready!"), 0); 
     
     char* startCommand = "Go!";

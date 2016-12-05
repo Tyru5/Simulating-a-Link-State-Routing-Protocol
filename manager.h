@@ -51,6 +51,7 @@ class Manager {
   int num_nodes;
   int num_edges = 0;
   vector < vector<int> > network_table;
+  vector < vector<int> > route_table;
   int sock_fd;
   vector<int> clientStatus;
   vector <int> clients;

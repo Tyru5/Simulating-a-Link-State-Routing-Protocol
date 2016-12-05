@@ -22,6 +22,7 @@ protected:
     int createManagerConnection();
     std::vector<int> table;
     void checkError(int status);
+   
 };
 
 #endif

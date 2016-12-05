@@ -46,6 +46,12 @@ void Manager::configureRouters() {
     recv(client_fd, &router_number, sizeof(router_number), 0);
     cout << "Managing: " << router_number << endl;
     
+    
+	int numberOfIncomingConnections = 0;
+	
+	int size = 0;
+	
+    route_table.clear();
     for(int i = 0; i < static_cast<int>(network_table.size()); i++){
 		 
 		for(int c = 0; c < static_cast<int>(network_table[i].size() - 1); c++){
@@ -53,22 +59,39 @@ void Manager::configureRouters() {
 			if(network_table[i][c] == router_number) {
 				vector<int> table = network_table.at(i);
 				cout<<"Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+				int size = table.size();
+				cout << "table.size(): " << size << endl;
 				
+				numberOfIncomingConnections++;
+				route_table.push_back(table);
 			} 
+			
 		}
-		//cout << endl;
+		
 	}
+	
+	//How many tuples are being sent to the router?	
+    send(client_fd, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
+	send(client_fd, &size, sizeof(size), 0);
+	
+	//For every tuple send it to the router.
+	
+	if(!route_table.empty()) {
+		for(int j = 0; j< static_cast<int>(route_table.size()); j++){
+				send(client_fd, &route_table[0], sizeof(int)*size, 0);
+		}
+		
+	} 
+		
 	/*
     vector<int> table = network_table.at(router_number);
     
     
     
-    int numberOfIncomingConnections = 5; // TODO: Tyrus, put the number of incoming connections here for a node. 
-    int size = table.size();
-    cout << "table.size(): " << size << endl;
-    send(client_fd, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
-    send(client_fd, &size, sizeof(size), 0);
-    send(client_fd, &table[0], sizeof(int)*size, 0);
+    
+    
+    
+    
     
     char buffer[sizeof("Ready!")];
     recv(client_fd, &buffer, sizeof(buffer) , 0);
