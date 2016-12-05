@@ -46,7 +46,23 @@ void Manager::configureRouters() {
     recv(client_fd, &router_number, sizeof(router_number), 0);
     cout << "Managing: " << router_number << endl;
     
+    for(int i = 0; i < static_cast<int>(network_table.size()); i++){
+		 
+		for(int c = 0; c < static_cast<int>(network_table[i].size() - 1); c++){
+			//cout << tbl[i][c] << " ";
+			if(network_table[i][c] == router_number) {
+				vector<int> table = network_table.at(i);
+				cout<<"Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+				
+			} 
+		}
+		//cout << endl;
+	}
+	/*
     vector<int> table = network_table.at(router_number);
+    
+    
+    
     int numberOfIncomingConnections = 5; // TODO: Tyrus, put the number of incoming connections here for a node. 
     int size = table.size();
     cout << "table.size(): " << size << endl;
@@ -63,7 +79,9 @@ void Manager::configureRouters() {
   for(int idx = 0; idx < num_nodes; idx++) {
     int client_fd = clients.at(idx);
     send(client_fd, "Go!", sizeof("Go!"), 0);
+    */
   }
+  
 }
 
 void Manager::parseInputFile(){

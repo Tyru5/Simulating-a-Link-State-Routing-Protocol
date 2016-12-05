@@ -26,7 +26,7 @@ void Router::routerProcess() {
         cout << "Failed to send the manager my router number :(" << endl;
         exit(1);
     }
-    
+    /*
     int numberOfIncomingConnections = 0;
     status = recv(manager_socket, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
     
@@ -40,9 +40,10 @@ void Router::routerProcess() {
     {
         cout << "Number of incoming connections: " << numberOfIncomingConnections << endl;
         cout << "Connection table size: " << size << endl;
-        cout << "printing table for " << router_number << " ";
-        for(int idx = 0; idx < table.size(); idx++) cout << table.at(idx) << " ";
-        cout << endl;
+        cout << "printing table for " << router_number << ": ";
+        for(int idx = 0; idx < table.size(); idx++) 
+			cout << table.at(idx) << " ";
+			cout << endl;
     }
     
     status = send(manager_socket, "Ready!", sizeof("Ready!"), 0); 
@@ -62,6 +63,7 @@ void Router::routerProcess() {
     for(int idx = 0; idx < numberOfIncomingConnections; idx++) {
             // TODO: UDP recvfrom, using router_socket. Recieves  connections from nodes.
     }
+    */
 }
 
 int Router::createManagerConnection() {
