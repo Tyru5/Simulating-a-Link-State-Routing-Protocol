@@ -40,10 +40,9 @@ void Router::routerProcess() {
     for(int i = 0; i < numberOfIncomingConnections; i++) {
 		 cout<<"Router: Recieving connection from: " << router_number << endl;
 		 status = recv(manager_socket, &table[0], sizeof(int)*size, 0);
-		 // Add each tuple to a vector < vector <int> >
-		 // ***** FOR SOME REASON ITS NOT RECIEVING THE table[0] ********
+		 // Add each tuple to a vector < vector <int> > ***** How should we store the values????
 		 cout<<"Router: Recieved " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
-
+		
 	}
 
   

@@ -79,9 +79,7 @@ void Manager::configureRouters() {
 		cout<<"Manager: Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
 		for(int j = 0; j< static_cast<int>(route_table.size()); j++){			
 				vector<int> table = route_table.at(j);
-				cout<<"Manager: sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 
-			
-				//*****TROUBLE SENDING EACH VEC TO THE APPROPRIATE ROUTER ******		
+				cout<<"Manager: sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 	
 				send(client_fd, &table[0], sizeof(int)*size, 0);
 		}	
 	} else {
