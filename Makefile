@@ -7,9 +7,9 @@ OBJS		= manager.o router.o
 OBJ1		= manager.o
 OBJ2		= router.o
 DEBUG		= -g
-CPPFLAGS	= -Wall -std=c++11 -I. -c $(DEBUG)
+CPPFLAGS	= -Wall -std=c++11 -I. -c $(DEBUG) -lpthread 
 
-LDFLAGS		= -Wall $(DEBUG) # order of targets actualy matter
+LDFLAGS		= -Wall $(DEBUG) -lpthread  # order of targets actualy matter 
 
 EXE             = Tyrus_Malmstrom_Sam_Kramer_Torry_Brelsfold_P3
 

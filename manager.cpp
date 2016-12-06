@@ -14,14 +14,16 @@ int main(int argc, char* argv[]){
      The manager takes as argument a single file. You will run the manager as follows.
   */
   
-  Manager network_manager( argv[1] );
+  Manager network_manager( argv[1], argv[2] );
   network_manager.parseInputFile();
+  network_manager.parseMessageFile();
   
   network_manager.createRouterListener(MANAGER_PORT);
   
   // Spawn each router for the Network Topology:
   network_manager.spawnRouters();
   network_manager.configureRouters();
+  
   
   return 0;
 }
@@ -54,13 +56,12 @@ void Manager::configureRouters() {
       perror("ERROR on accept");
       exit(1);
     }
-    clients.push_back(client_fd);
     cout << "Manager: client_fd: " << client_fd << endl;
     
     int router_number = 0;
     recv(client_fd, &router_number, sizeof(router_number), 0);
     cout << "Manager: Managing: " << router_number << endl;
-    
+    clients.push_back( make_tuple(router_number, client_fd) );
     	
     vector<LSP> router_nodes = network_map.find(router_number)->second;
     int size = router_nodes.size();
@@ -78,7 +79,7 @@ void Manager::configureRouters() {
     }
     
     //How many tuples are being sent to the router?	
-    send(client_fd, &router_info, sizeof(router_info), 0);
+    send(client_fd, &router_info, sizeof(router_info) , 0);
     cout << "Manager: table.size(): " << size << endl;	
     send(client_fd, &size, sizeof(size), 0);
     send(client_fd, &router_nodes[0], sizeof(LSP)*size, 0);
@@ -96,13 +97,13 @@ void Manager::configureRouters() {
   
   // Start phase 2: setting up UDP connections
   for(int idx = 0; idx < num_nodes; idx++) {
-    int client_fd = clients.at(idx);
+    int client_fd = get<1>(clients.at(idx));
     send(client_fd, go, sizeof(go), 0);
   }
   
   /* END OF PHASE 2*/
   for(int idx = 0; idx < num_nodes; idx++) {
-    int client_fd = clients.at(idx);
+    int client_fd = get<1>(clients.at(idx));
     int recv_status = 0;
     recv(client_fd, &recv_status, sizeof(recv_status), 0);
     cout << recv_status << endl;
@@ -110,12 +111,56 @@ void Manager::configureRouters() {
 
   /*START OF PHASE 3*/
   for(int idx = 0; idx < num_nodes; idx++) {
-    int client_fd = clients.at(idx);
+    int client_fd = get<1>(clients.at(idx));
     send(client_fd, go, sizeof(go), 0);
   }
-  // END OF PHASE 3
-
   
+  // END OF PHASE 3
+  for(int idx = 0; idx < num_nodes; idx++) {
+    int client_fd = get<1>(clients.at(idx));
+    int recv_status = 0;
+    recv(client_fd, &recv_status, sizeof(recv_status), 0);
+    cout << recv_status << endl;
+  }
+  
+  // START OF PHASE 4
+  vector<tuple<int,int>> messagesExpected;
+  for(int idx = 0; idx < num_nodes; idx++) {
+    int client_fd = get<1>(clients.at(idx));
+    vector<Packet> messagesToSend;
+    for(int i = 0; i < static_cast<int>(messages.size()); i++) {
+        if(messages.at(i).src == get<0>(clients.at(idx))) {
+            messagesToSend.push_back(messages.at(i));   
+        }
+    }
+    
+    int msg_size = messagesToSend.size();
+    send(client_fd, &msg_size, sizeof(msg_size), 0);
+    send(client_fd, &messagesToSend[0], sizeof(Packet)*msg_size, 0);
+
+    int expected_msg = 0;
+    for(int i = 0; i < static_cast<int>(messages.size()); i++) {
+        if(messages.at(i).dest == get<0>(clients.at(idx))) {
+            expected_msg++;  
+        }
+    }
+    messagesExpected.push_back(make_tuple(client_fd, expected_msg));
+  }
+  cout << "Manager waiting for messages" << endl;
+    for(int idx = 0; idx < static_cast<int>(messagesExpected.size()); idx++) {
+    int expect_count = get<1>(messagesExpected.at(idx));
+    int client_fd = get<0>(messagesExpected.at(idx));
+        cout << "Manager recv from " << client_fd << " for " << expect_count << " messages" << endl;
+  }
+  for(int idx = 0; idx < static_cast<int>(messagesExpected.size()); idx++) {
+    int expect_count = get<1>(messagesExpected.at(idx));
+    int client_fd = get<0>(messagesExpected.at(idx));
+    for(int i = 0; i < expect_count; i++) {
+        int recv_status = 0;
+        recv(client_fd, &recv_status, sizeof(recv_status), 0);
+        cout << "Manager recv from " << client_fd;
+    }
+  }
   
 }
 
@@ -212,6 +257,59 @@ void Manager::parseInputFile(){
   
 }
 
+void Manager::parseMessageFile(){
+    
+    
+    ifstream mfile( message_file  );
+  
+    if( !mfile ){
+        cout << "Sorry! Could open [" << message_file << "] !" << endl;
+    }
+    
+    string line;
+    
+    Packet message_packet;
+    stringstream message_stream;
+    int src,dest;
+    while( getline( mfile, line ) ){
+
+        // cout << message_stream.str() << endl;
+
+        message_stream << line;
+        message_stream >> src >> dest;
+        message_packet.src = src;
+        message_packet.dest = dest;
+        
+        messages.push_back( message_packet );
+            // clearing the stringstream:
+        message_stream.str( string() );
+        message_stream.clear();
+    
+  } // end of while statement.
+  
+  for(int i =0; i < messages.size(); i++) cout << messages.at(i).src << " : " << messages.at(i).dest << endl;
+    
+}
+
+void Manager::waitForChildren(){
+  for( int idx = 0; idx < static_cast<int>(child_pross.size()); idx++){
+    //run the wait() unix system call that waits for a program to finish/change state
+    printf("IN PARENT:Child's PID =  %d\n", child_pross[idx] );
+    int status;
+	waitpid( child_pross[idx], &status, 0 );
+	      //checking status codes:
+	      if ( WIFEXITED(status) ){ // returns true if the child terminated normally
+            if(status == 0){
+            printf("IN PARENT: Child's exit code: %d (OK)\n", WEXITSTATUS(status));
+	      }
+            else{
+            printf("IN PARENT: Child's exit code: %d (error)\n", WEXITSTATUS(status));
+            }
+	      }
+	      printf("IN PARENT: Parent (PID = %d): done\n",getppid());
+  }   
+}
+
 void Manager::debugMap() {
   for(const auto &ourMap: network_map){
     cout << "===" << ourMap.first << "===" << endl;
@@ -251,6 +349,7 @@ void Manager::spawnRouters(){
     //delcaring and initializing the fork sytem call:
     //fork a child process
     pid_t routerN = fork();
+    child_pross.push_back( routerN );
 
 
     //Checking -> Errors and parent or child status:
@@ -268,23 +367,8 @@ void Manager::spawnRouters(){
       execl("./router","router", std::to_string(i).c_str(), NULL);
       
     }
-    else{/*parent process*/
-      
-      //run the wait() unix system call that waits for a program to finish/change state
-      /*      printf("IN PARENT:Child's PID =  %d\n", routerN );
-	      int status;
-	      waitpid( routerN, &status, 0 );
-	      //checking status codes:
-	      if ( WIFEXITED(status) ){ // returns true if the child terminated normally
-	      if(status == 0){
-	      printf("IN PARENT: Child's exit code: %d (OK)\n", WEXITSTATUS(status));
-	      }
-	      else{
-	      printf("IN PARENT: Child's exit code: %d (error)\n", WEXITSTATUS(status));
-	      }
-	      }
-	      printf("IN PARENT: Parent (PID = %d): done\n",getppid());
-      */    }
+    //else{/*parent process*/
+    //}
     
   } // end of for
   

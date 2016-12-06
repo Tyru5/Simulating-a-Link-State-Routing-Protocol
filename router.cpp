@@ -206,10 +206,91 @@ void Router::routerProcess(){
     
     
   } // end of while
-
- 
-  
+    adjacency_list_t adjacency_list(router_info.number_nodes);
+   for(const auto &ourMap: network_map){
+       for(int idx = 0; idx < static_cast<int>(ourMap.second.size()); idx++) {
+           LSP dest_lsp = ourMap.second.at(idx);
+           int target = dest_lsp.destination;
+           int weight = dest_lsp.cost;
+           adjacency_list[ourMap.first].push_back(neighbor(target,weight));
+       }
+  }
+    std::vector<weight_t> min_distance;
+    std::vector<vertex_t> previous;
+    DijkstraComputePaths(router_number, adjacency_list, min_distance, previous);
+    list<vertex_t> path;
+ /*   
+        std::cout << "Path (" << router_number << ",1) : ";
+    std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
+    std::cout << std::endl;
     
+    path = DijkstraGetShortestPathTo(2, previous);
+    std::cout << "Path (" << router_number << ",2) : ";
+    std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
+    std::cout << std::endl;
+    */
+    
+    int ready = FINAL_PHASE;
+    cout << "Router[" << router_number << "] IS READY FOR FINAL PHASE" << endl;
+    status = send(manager_socket, &ready, sizeof(ready), 0);
+    
+    int msg_size = 0;
+    status = recv(manager_socket, &msg_size, sizeof(msg_size), 0);
+    if(status == -1) {
+        cout << "Failed to recv the msg_size :(" << endl;
+        exit(1);
+    }
+    fflush(manager_socket);
+
+    cout << "msg_size: " << msg_size << " --- router_number" << router_number << endl;
+    vector<Packet> messages(msg_size);
+    
+    if(msg_size != 0) {
+        status = recv(manager_socket, &messages[0], sizeof(Packet)*msg_size, 0);
+        if(status == -1) {
+        cout << "Failed to recv the LSP vector :(" << endl;
+        exit(1);
+        }
+        cout << "Router[" << router_number << "] has got messages" << endl;
+    }
+    
+    while(true) {
+        Packet recv_packet;
+        struct sockaddr recvFromAddr;
+        socklen_t recvFromAddrSize;
+        recvfrom(router_socket, &recv_packet, sizeof(recv_packet), 0, &recvFromAddr, &recvFromAddrSize);
+        if(recv_packet.dest == router_number) {
+            pthread_t threadId;
+            pthread_create(&threadId, NULL, notify_manager, (void*)&manager_socket);
+            cout << "(" << recv_packet.src << "," << recv_packet.dest << ")" << endl;
+        } else {
+            path = DijkstraGetShortestPathTo(recv_packet.dest, previous);
+            auto path_front = path.begin();
+            std::advance(path_front, 1);
+            int next_hop = *path_front;
+            cout << router_number << " to " << recv_packet.dest << " via "; 
+            std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
+            //cout << " next_hop: " << next_hop << endl;
+            cout << endl;
+            struct sockaddr_in sendToAddr = getRouterSockAddr(next_hop);
+            // int send_val = router_number;
+            sendto( router_socket, &recv_packet, sizeof(recv_packet), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr) );
+            //cout << "Sent from " << router_number << " to " << next_hop << endl; 
+            //exit(1);
+        }
+    }
+    
+}
+
+void* notify_manager(void* args) {
+  int manager_socket = *(int*)args;
+  int done = DONE_PHASE;
+  int status = send(manager_socket, &done, sizeof(done), 0);
+  if(status == -1) {
+        perror("Error: ");
+        exit(1);
+  }
+  //cout << "Sending message to " << manager_socket << endl;
 }
 
 
@@ -273,3 +354,57 @@ void Router::debugMap() {
     }
   }
 }
+
+/* v CODE TAKEN FROM https://rosettacode.org/wiki/Dijkstra's_algorithm#C.2B.2B v */
+void Router::DijkstraComputePaths(vertex_t source,
+                          const adjacency_list_t &adjacency_list,
+                          std::vector<weight_t> &min_distance,
+                          std::vector<vertex_t> &previous)
+{
+    int n = adjacency_list.size();
+    min_distance.clear();
+    min_distance.resize(n, max_weight);
+    min_distance[source] = 0;
+    previous.clear();
+    previous.resize(n, -1);
+    std::set<std::pair<weight_t, vertex_t> > vertex_queue;
+    vertex_queue.insert(std::make_pair(min_distance[source], source));
+ 
+    while (!vertex_queue.empty()) 
+    {
+        weight_t dist = vertex_queue.begin()->first;
+        vertex_t u = vertex_queue.begin()->second;
+        vertex_queue.erase(vertex_queue.begin());
+ 
+        // Visit each edge exiting u
+	const std::vector<neighbor> &neighbors = adjacency_list[u];
+        for (std::vector<neighbor>::const_iterator neighbor_iter = neighbors.begin();
+             neighbor_iter != neighbors.end();
+             neighbor_iter++)
+        {
+            vertex_t v = neighbor_iter->target;
+            weight_t weight = neighbor_iter->weight;
+            weight_t distance_through_u = dist + weight;
+	    if (distance_through_u < min_distance[v]) {
+	        vertex_queue.erase(std::make_pair(min_distance[v], v));
+ 
+	        min_distance[v] = distance_through_u;
+	        previous[v] = u;
+	        vertex_queue.insert(std::make_pair(min_distance[v], v));
+ 
+	    }
+ 
+        }
+    }
+}
+ 
+ 
+std::list<vertex_t> Router::DijkstraGetShortestPathTo(
+    vertex_t vertex, const std::vector<vertex_t> &previous)
+{
+    std::list<vertex_t> path;
+    for ( ; vertex != -1; vertex = previous[vertex])
+        path.push_front(vertex);
+    return path;
+}
+/* ^ CODE TAKEN FROM https://rosettacode.org/wiki/Dijkstra's_algorithm#C.2B.2B ^ */

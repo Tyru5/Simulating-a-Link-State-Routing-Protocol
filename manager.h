@@ -21,6 +21,7 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <tuple>
 
 // For Fork() -- Child processes
 #include <sys/types.h>
@@ -29,6 +30,7 @@
 
 using std::string;
 using std::vector;
+using std::tuple;
 
 
 void handle_router_connections(int sock_fd);
@@ -37,7 +39,7 @@ class Manager {
 
  public:
   
- Manager( const string& _input_file ): input_file( _input_file ){} // default constructor
+ Manager( const string& _input_file, const string& _message_file ): input_file( _input_file ), message_file(_message_file){} // default constructor
 
   // public member funcitons:
   void parseInputFile();
@@ -46,10 +48,13 @@ class Manager {
   void configureRouters();
   void debugMap();
   int getNumberOfIncomingConnections(const int router_number);
-
+  void parseMessageFile();
+  void waitForChildren();
+  
  protected:
   
   string input_file;
+  string message_file;
   int num_lines = 0;
   int num_nodes;
   int num_edges = 0;
@@ -57,8 +62,10 @@ class Manager {
   vector < vector<int> > route_table;
   int sock_fd;
   vector<int> clientStatus;
-  vector <int> clients;
+  vector<tuple<int, int>> clients;
   map<int, vector<LSP>> network_map;
+  vector< Packet > messages;
+  vector< pid_t > child_pross;
   
 };
 #endif //MANAGER_H_INCLUDE

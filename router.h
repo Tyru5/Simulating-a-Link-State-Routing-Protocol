@@ -14,9 +14,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <limits> // for numeric_limits
+ 
+#include <set>
+#include <utility> // for pair
+#include <algorithm>
+#include <iterator>
+#include <list>
+#include <pthread.h>
 
 using std::vector;
+using std::list;
 
+/* v CODE TAKEN FROM https://rosettacode.org/wiki/Dijkstra's_algorithm#C.2B.2B */
+typedef int vertex_t;
+typedef double weight_t;
+ 
+const weight_t max_weight = std::numeric_limits<double>::infinity();
+ 
+struct neighbor {
+    vertex_t target;
+    weight_t weight;
+    neighbor(vertex_t arg_target, weight_t arg_weight)
+        : target(arg_target), weight(arg_weight) { }
+};
+ 
+typedef std::vector<std::vector<neighbor> > adjacency_list_t;
+/* ^ CODE TAKEN FROM https://rosettacode.org/wiki/Dijkstra's_algorithm#C.2B.2B ^ */
+void* notify_manager(void* args);
 class Router {
 
   
@@ -32,6 +57,11 @@ class Router {
   struct sockaddr_in getRouterSockAddr(int router_number);
   bool netWrkTableFull();
   void debugMap();
+  /* v CODE TAKEN FROM https://rosettacode.org/wiki/Dijkstra's_algorithm#C.2B.2B */
+  std::list<vertex_t> DijkstraGetShortestPathTo(vertex_t vertex, const std::vector<vertex_t> &previous);
+  void DijkstraComputePaths(vertex_t source, const adjacency_list_t &adjacency_list,
+                          std::vector<weight_t> &min_distance,std::vector<vertex_t> &previous);
+  /* ^ CODE TAKEN FROM https://rosettacode.org/wiki/Dijkstra's_algorithm#C.2B.2B ^ */
     
  protected: 
   int router_number;

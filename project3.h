@@ -6,6 +6,7 @@
 #define LINK_PHASE 2
 #define DISTRIBUTION_PHASE 3
 #define FINAL_PHASE 4
+#define DONE_PHASE 5  
 
 #include <map>
 using std::map;
@@ -21,4 +22,10 @@ typedef struct _ROUTER_INFO {
  int number_nodes;
  int number_edges; 
 } ROUTER_INFO;
+
+typedef struct _PACKET {
+ int src;
+ int dest;
+ time_t timestamp; 
+} Packet;
 #endif
