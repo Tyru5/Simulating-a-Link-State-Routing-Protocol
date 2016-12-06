@@ -23,19 +23,23 @@ class Router {
  public:
  Router(const int&  _router_number): // the c++ way .. ;p
   router_number( _router_number )
-  ,port( MANAGER_PORT + router_number )
-  {}
+    ,port( MANAGER_PORT + router_number )
+    {}
+
+  
   void initNetworkMap(int number_nodes);
   void routerProcess();
   struct sockaddr_in getRouterSockAddr(int router_number);
-  
+  bool netWrkTableFull();
+  void debugMap();
+    
  protected: 
   int router_number;
   int router_socket;
   int port;
   int createRouterSocket();
   int createManagerConnection();
-  void checkError(int status);
+  void checkError( int status );
   map<int, vector<LSP>> network_map;
   ROUTER_INFO router_info;
   vector<int> router_connections;

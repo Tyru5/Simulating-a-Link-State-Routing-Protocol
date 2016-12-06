@@ -27,19 +27,19 @@ int main(int argc, char* argv[]){
 }
 
 int Manager::getNumberOfIncomingConnections(const int router_number) {
-    //cout << "start getNumberOfIncomingConnections()" << endl;
-    int connections = 0;
-    for(const auto &ourMap: network_map){
-        if(ourMap.first != router_number) {
-            for(int idx = 0; idx < static_cast<int>( ourMap.second.size() ); idx++) {
-                LSP lsp = ourMap.second.at(idx);
-                //cout << lsp.destination << " == " << router_number << endl;
-                if(lsp.destination == router_number) connections++;
-            }   
-        }
+  //cout << "start getNumberOfIncomingConnections()" << endl;
+  int connections = 0;
+  for(const auto &ourMap: network_map){
+    if(ourMap.first != router_number) {
+      for(int idx = 0; idx < static_cast<int>( ourMap.second.size() ); idx++) {
+	LSP lsp = ourMap.second.at(idx);
+	//cout << lsp.destination << " == " << router_number << endl;
+	if(lsp.destination == router_number) connections++;
+      }   
     }
-    //cout << "end getNumberOfIncomingConnections()" << endl;
-    return connections;
+  }
+  //cout << "end getNumberOfIncomingConnections()" << endl;
+  return connections;
 }
 
 void Manager::configureRouters() {
@@ -66,42 +66,56 @@ void Manager::configureRouters() {
     int size = router_nodes.size();
 	
     route_table.clear();
-	ROUTER_INFO router_info;
+    ROUTER_INFO router_info;
     
     router_info.number_incoming_connections = getNumberOfIncomingConnections(router_number);
     router_info.number_nodes = num_nodes;
     router_info.number_edges = num_edges;
     if(DEBUG) {
-            cout << "Manger: Debug: number_incoming_connections:" << router_info.number_incoming_connections << endl;
-            cout << "Manger: Debug: number_nodes:" << router_info.number_nodes << endl;
-            cout << "Manger: Debug: number_edges:" << router_info.number_edges << endl;
+      cout << "Manger: Debug: number_incoming_connections:" << router_info.number_incoming_connections << endl;
+      cout << "Manger: Debug: number_nodes:" << router_info.number_nodes << endl;
+      cout << "Manger: Debug: number_edges:" << router_info.number_edges << endl;
     }
     
     //How many tuples are being sent to the router?	
     send(client_fd, &router_info, sizeof(router_info), 0);
     cout << "Manager: table.size(): " << size << endl;	
     send(client_fd, &size, sizeof(size), 0);
-	send(client_fd, &router_nodes[0], sizeof(LSP)*size, 0);
+    send(client_fd, &router_nodes[0], sizeof(LSP)*size, 0);
     
     cout << "WAITING ON: " << router_number << endl;
     char buffer[sizeof("Ready!")];
     recv(client_fd, &buffer, sizeof(buffer) , 0);
     clientStatus.at(idx) = SETUP_PHASE;
   }
-	
-	// Start phase 2: setting up UDP connections
+
+
+  char go[10];
+  memset( go, 0, sizeof(go) );
+  strcpy( go, "Go!");
+  
+  // Start phase 2: setting up UDP connections
   for(int idx = 0; idx < num_nodes; idx++) {
-	int client_fd = clients.at(idx);
-	char* go = "Go!";
-	send(client_fd, go, sizeof(go), 0);
+    int client_fd = clients.at(idx);
+    send(client_fd, go, sizeof(go), 0);
   }
   
+  /* END OF PHASE 2*/
   for(int idx = 0; idx < num_nodes; idx++) {
-	int client_fd = clients.at(idx);
-	int recv_status = 0;
-	recv(client_fd, &recv_status, sizeof(recv_status), 0);
+    int client_fd = clients.at(idx);
+    int recv_status = 0;
+    recv(client_fd, &recv_status, sizeof(recv_status), 0);
     cout << recv_status << endl;
   }
+
+  /*START OF PHASE 3*/
+  for(int idx = 0; idx < num_nodes; idx++) {
+    int client_fd = clients.at(idx);
+    send(client_fd, go, sizeof(go), 0);
+  }
+  // END OF PHASE 3
+
+  
   
 }
 
@@ -183,18 +197,28 @@ void Manager::parseInputFile(){
     it->second.push_back(lsp);
   }
 
+  for(int i = 0; i < static_cast<int>(network_table.size()); i++){
+    map<int, vector<LSP>>::iterator it = network_map.find(network_table[i][1]);
+    LSP lsp;
+    lsp.source = network_table[i][1];
+    lsp.destination = network_table[i][0]; // flipped
+    lsp.cost = network_table[i][2];
+    it->second.push_back(lsp);
+  }
+
+  
   if(DEBUG) printNT( network_table, num_edges );
   
   
 }
 
 void Manager::debugMap() {
-    for(const auto &ourMap: network_map){
-      cout << "===" << ourMap.first << "===" << endl;
-      for(int idx = 0; idx < static_cast<int>( ourMap.second.size() ); idx++) {
-          LSP lsp = ourMap.second.at(idx);
-          cout << lsp.source << " " << lsp.destination << " " << lsp.cost << endl;
-      }
+  for(const auto &ourMap: network_map){
+    cout << "===" << ourMap.first << "===" << endl;
+    for(int idx = 0; idx < static_cast<int>( ourMap.second.size() ); idx++) {
+      LSP lsp = ourMap.second.at(idx);
+      cout << lsp.source << " " << lsp.destination << " " << lsp.cost << endl;
+    }
   }
 }
 
