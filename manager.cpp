@@ -84,7 +84,7 @@ void Manager::configureRouters() {
 				cout<<"Manager: sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 	
 				cout<<"Manager: finding the UDP for Neighbor"<<endl;
 				for(int k =0; k<static_cast<int>(route_table.size()-1); k++) {
-					cout<<route_table[j][k] << " " <<endl;
+					//cout<<route_table[j][k] << " " <<endl;
 				}
 				send(client_fd, &table[0], sizeof(int)*size, 0);
 		}	
