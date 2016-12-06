@@ -240,7 +240,6 @@ void Router::routerProcess(){
         cout << "Failed to recv the msg_size :(" << endl;
         exit(1);
     }
-    fflush(manager_socket);
 
     cout << "msg_size: " << msg_size << " --- router_number" << router_number << endl;
     vector<Packet> messages(msg_size);
