@@ -13,19 +13,27 @@
 //using std::vector;
 
 class Router {
-public:
-    Router(const int router_number) { this->router_number = router_number; port = MANAGER_PORT + router_number;}
-    void routerProcess();
-protected: 
-    int router_number;
-    int router_socket;
-    int port;
-    int createRouterSocket();
-    int createManagerConnection();
-    std::vector<int> table;
-    void checkError(int status);
-    //vector < vector<int> > rnetwork_table;
-   
+
+  
+ public:
+ Router(const int&  _router_number): // the c++ way .. ;p
+  router_number( _router_number )
+  ,port( MANAGER_PORT + router_number )
+  {}
+  
+  void routerProcess();
+
+  
+ protected: 
+  int router_number;
+  int router_socket;
+  int port;
+  int createRouterSocket();
+  int createManagerConnection();
+  std::vector<int> table;
+  void checkError(int status);
+  //vector < vector<int> > rnetwork_table; why?
+  
 };
 
-#endif
+#endif // ROUTER_H
