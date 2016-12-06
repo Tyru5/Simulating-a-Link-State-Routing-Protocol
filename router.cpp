@@ -29,23 +29,21 @@ void Router::routerProcess() {
     
     
   // Recive the size of many many pairs it has in the table
-  int numberOfIncomingConnections = 0;
-  status = recv(manager_socket, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
+  ROUTER_INFO router_info;
+  status = recv(manager_socket, &router_info, sizeof(router_info), 0);
+  if(DEBUG) {
+            cout << "Router: Debug: number_incoming_connections:" << router_info.number_incoming_connections << endl;
+            cout << "Router: Debug: number_nodes:" << router_info.number_nodes << endl;
+            cout << "Router: Debug: number_edges:" << router_info.number_edges << endl;
+    }
     
   int size = 0;
   status = recv(manager_socket, &size, sizeof(size), 0);
   table.resize(size);
-   
-  cout<<"Router: Number of incoming connections: " << numberOfIncomingConnections<<endl;
-  for(int i = 0; i < numberOfIncomingConnections; i++) {
-    
-    cout<<"Router: Recieving connection from: " << router_number << endl;
-    status = recv(manager_socket, &table[0], sizeof(int)*size, 0);
-    // Add each tuple to a vector < vector <int> > ***** How should we store the values????
-    cout<<"Router: Recieved " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
-		
-  }
+  
+  status = recv(manager_socket, &table[0], sizeof(LSP)*size, 0);
 
+  
   
   if(DEBUG)
     {

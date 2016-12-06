@@ -1,5 +1,8 @@
 #ifndef ROUTER_H
 #define ROUTER_H
+
+#include "project3.h"
+
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
@@ -8,9 +11,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <vector>
-#include "project3.h"
 
-//using std::vector;
+using std::vector;
 
 class Router {
 
@@ -32,7 +34,7 @@ class Router {
   int createManagerConnection();
   std::vector<int> table;
   void checkError(int status);
-  //vector < vector<int> > rnetwork_table; why?
+  map<int, vector<LSP>> network_map;
   
 };
 

@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <map>
 
 // For Fork() -- Child processes
 #include <sys/types.h>
@@ -31,7 +32,7 @@ using std::vector;
 
 
 void handle_router_connections(int sock_fd);
-
+ 
 class Manager {
 
  public:
@@ -43,6 +44,8 @@ class Manager {
   int createRouterListener( int port );
   void spawnRouters();
   void configureRouters();
+  void debugMap();
+  int getNumberOfIncomingConnections(const int router_number);
 
  protected:
   
@@ -55,5 +58,7 @@ class Manager {
   int sock_fd;
   vector<int> clientStatus;
   vector <int> clients;
+  map<int, vector<LSP>> network_map;
+  
 };
 #endif //MANAGER_H_INCLUDE

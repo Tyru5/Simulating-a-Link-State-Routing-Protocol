@@ -22,10 +22,24 @@ int main(int argc, char* argv[]){
   // Spawn each router for the Network Topology:
   network_manager.spawnRouters();
   network_manager.configureRouters();
-
-
   
   return 0;
+}
+
+int Manager::getNumberOfIncomingConnections(const int router_number) {
+    //cout << "start getNumberOfIncomingConnections()" << endl;
+    int connections = 0;
+    for(const auto &ourMap: network_map){
+        if(ourMap.first != router_number) {
+            for(int idx = 0; idx < ourMap.second.size(); idx++) {
+                LSP lsp = ourMap.second.at(idx);
+                //cout << lsp.destination << " == " << router_number << endl;
+                if(lsp.destination == router_number) connections++;
+            }   
+        }
+    }
+    //cout << "end getNumberOfIncomingConnections()" << endl;
+    return connections;
 }
 
 void Manager::configureRouters() {
@@ -50,74 +64,41 @@ void Manager::configureRouters() {
     
     int numberOfIncomingConnections = 0;
 	
-    int size = 3;
+    vector<LSP> router_nodes = network_map.find(router_number)->second;
+    int size = router_nodes.size();
 	
     route_table.clear();
-    for(int i = 0; i < static_cast<int>(network_table.size()); i++){		 
-      for(int c = 0; c < static_cast<int>(network_table[i].size() - 1); c++){
-	//cout << tbl[i][c] << " ";
-	if(network_table[i][c] == router_number) {
-	  vector<int> table = network_table.at(i);
-	  cout<<"Manager: Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
-	  //int size = table.size();
-						
-	  numberOfIncomingConnections++;
-	  route_table.push_back(table);
-	} 
-			
-      }
-		
+	ROUTER_INFO router_info;
+    
+    router_info.number_incoming_connections = getNumberOfIncomingConnections(router_number);
+    router_info.number_nodes = num_nodes;
+    router_info.number_edges = num_edges;
+    if(DEBUG) {
+            cout << "Manger: Debug: number_incoming_connections:" << router_info.number_incoming_connections << endl;
+            cout << "Manger: Debug: number_nodes:" << router_info.number_nodes << endl;
+            cout << "Manger: Debug: number_edges:" << router_info.number_edges << endl;
     }
-	
+    
     //How many tuples are being sent to the router?	
-    cout<<"Manager: numberOfIncomingConnections: " << numberOfIncomingConnections<<endl;
-    send(client_fd, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
+    send(client_fd, &router_info, sizeof(router_info), 0);
     cout << "Manager: table.size(): " << size << endl;	
     send(client_fd, &size, sizeof(size), 0);
-	
-
-	//For every tuple send it to the router 
-	if(!route_table.empty()) {
-		cout<<"Manager: Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
-		for(int j = 0; j< static_cast<int>(route_table.size()); j++){			
-				vector<int> table = route_table.at(j);
-				cout<<"Manager: sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 	
-				cout<<"Manager: finding the UDP for Neighbor"<<endl;
-				for(int k =0; k<static_cast<int>(route_table.size()-1); k++) {
-					//cout<<route_table[j][k] << " " <<endl;
-				}
-				send(client_fd, &table[0], sizeof(int)*size, 0);
-		}	
-	} else {
-		cout<<"Manager: Table for " << router_number << " is empty"<<endl;
-	}
-
-    //For every tuple send it to the router 
-    if(!route_table.empty()) {
-      cout<<"Manager: Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
-      for(int j = 0; j< static_cast<int>(route_table.size()); j++){			
-	vector<int> table = route_table.at(j);
-	cout<<"Manager: sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 	
-	send(client_fd, &table[0], sizeof(int)*size, 0);
-      }	
-    } else {
-      cout<<"Manager: Table for " << router_number << " is empty"<<endl;
-    }
-
-	
-    /*	
-	char buffer[sizeof("Ready!")];
+	send(client_fd, &router_nodes[0], sizeof(LSP)*size, 0);
+    
+    /**
+    char buffer[sizeof("Ready!")];
 	recv(client_fd, &buffer, sizeof(buffer) , 0);
 	clientStatus.at(idx) = SETUP_PHASE;
 	}
-  
+	*/
+  }
+ 
+     /*	
 	// Start phase 2: setting up UDP connections
 	for(int idx = 0; idx < num_nodes; idx++) {
 	int client_fd = clients.at(idx);
 	send(client_fd, "Go!", sizeof("Go!"), 0);
     */ 
-  }
- 
   
 }
 
@@ -184,13 +165,38 @@ void Manager::parseInputFile(){
     iss.clear();
 
   } // end of while statement.
+  
+  for(int idx = 0; idx < num_nodes; idx++) {
+    vector<LSP> nodes; 
+    network_map.insert(pair<int, vector<LSP>>(idx, nodes));
+  }
+  
+  for(int i = 0; i < static_cast<int>(network_table.size()); i++){
+    map<int, vector<LSP>>::iterator it = network_map.find(network_table[i][0]);
+    LSP lsp;
+    lsp.source = network_table[i][0];
+    lsp.destination = network_table[i][1];
+    lsp.cost = network_table[i][2];
+    it->second.push_back(lsp);
+  }
 
   if(DEBUG) printNT( network_table, num_edges );
   
   
 }
 
+void Manager::debugMap() {
+    for(const auto &ourMap: network_map){
+      cout << "===" << ourMap.first << "===" << endl;
+      for(int idx = 0; idx < ourMap.second.size(); idx++) {
+          LSP lsp = ourMap.second.at(idx);
+          cout << lsp.source << " " << lsp.destination << " " << lsp.cost << endl;
+      }
+  }
+}
+
 int Manager::createRouterListener(int port) {
+    
   sock_fd = socket(AF_INET, SOCK_STREAM, 0);
   struct sockaddr_in server;
   int one = 1;
