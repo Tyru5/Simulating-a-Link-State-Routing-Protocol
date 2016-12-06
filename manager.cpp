@@ -31,7 +31,7 @@ int Manager::getNumberOfIncomingConnections(const int router_number) {
     int connections = 0;
     for(const auto &ourMap: network_map){
         if(ourMap.first != router_number) {
-            for(int idx = 0; idx < ourMap.second.size(); idx++) {
+            for(int idx = 0; idx < static_cast<int>( ourMap.second.size() ); idx++) {
                 LSP lsp = ourMap.second.at(idx);
                 //cout << lsp.destination << " == " << router_number << endl;
                 if(lsp.destination == router_number) connections++;
@@ -61,9 +61,7 @@ void Manager::configureRouters() {
     recv(client_fd, &router_number, sizeof(router_number), 0);
     cout << "Manager: Managing: " << router_number << endl;
     
-    
-    int numberOfIncomingConnections = 0;
-	
+    	
     vector<LSP> router_nodes = network_map.find(router_number)->second;
     int size = router_nodes.size();
 	
@@ -85,20 +83,25 @@ void Manager::configureRouters() {
     send(client_fd, &size, sizeof(size), 0);
 	send(client_fd, &router_nodes[0], sizeof(LSP)*size, 0);
     
-    /**
+    cout << "WAITING ON: " << router_number << endl;
     char buffer[sizeof("Ready!")];
-	recv(client_fd, &buffer, sizeof(buffer) , 0);
-	clientStatus.at(idx) = SETUP_PHASE;
-	}
-	*/
+    recv(client_fd, &buffer, sizeof(buffer) , 0);
+    clientStatus.at(idx) = SETUP_PHASE;
   }
- 
-     /*	
+	
 	// Start phase 2: setting up UDP connections
-	for(int idx = 0; idx < num_nodes; idx++) {
+  for(int idx = 0; idx < num_nodes; idx++) {
 	int client_fd = clients.at(idx);
-	send(client_fd, "Go!", sizeof("Go!"), 0);
-    */ 
+	char* go = "Go!";
+	send(client_fd, go, sizeof(go), 0);
+  }
+  
+  for(int idx = 0; idx < num_nodes; idx++) {
+	int client_fd = clients.at(idx);
+	int recv_status = 0;
+	recv(client_fd, &recv_status, sizeof(recv_status), 0);
+    cout << recv_status << endl;
+  }
   
 }
 
@@ -188,7 +191,7 @@ void Manager::parseInputFile(){
 void Manager::debugMap() {
     for(const auto &ourMap: network_map){
       cout << "===" << ourMap.first << "===" << endl;
-      for(int idx = 0; idx < ourMap.second.size(); idx++) {
+      for(int idx = 0; idx < static_cast<int>( ourMap.second.size() ); idx++) {
           LSP lsp = ourMap.second.at(idx);
           cout << lsp.source << " " << lsp.destination << " " << lsp.cost << endl;
       }

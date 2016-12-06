@@ -11,6 +11,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 using std::vector;
 
@@ -22,9 +25,9 @@ class Router {
   router_number( _router_number )
   ,port( MANAGER_PORT + router_number )
   {}
-  
+  void initNetworkMap(int number_nodes);
   void routerProcess();
-
+  struct sockaddr_in getRouterSockAddr(int router_number);
   
  protected: 
   int router_number;
@@ -32,9 +35,10 @@ class Router {
   int port;
   int createRouterSocket();
   int createManagerConnection();
-  std::vector<int> table;
   void checkError(int status);
   map<int, vector<LSP>> network_map;
+  ROUTER_INFO router_info;
+  vector<int> router_connections;
   
 };
 
