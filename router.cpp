@@ -289,7 +289,7 @@ void Router::routerProcess(){
       exit(1);
     }
     cout << "Router[" << router_number << "] has got messages" << endl;
-    r_out << "Router: " << (MANAGER_PORT + router_number) << " has recieved packet form manager." << endl;
+    r_out << "Router: " << (MANAGER_PORT + router_number) << " has recieved packet from manager." << endl;
   }
     
   for(int idx = 0; idx < msg_size; idx++) {
