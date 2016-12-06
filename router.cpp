@@ -9,7 +9,12 @@ int main(int argc, char* argv[]) {
   }
   cout << "Router: argv:" << argv[1] << endl;
   int router_number = atoi(argv[1]);
-  Router router(router_number);
+
+  string u_router = "router" + to_string( (MANAGER_PORT + router_number) ) + ".out"; 
+  ofstream _out( u_router );
+  if( !_out ) cout << "Sorry! Couldn't write out from the router! " << endl;
+  
+  Router router( router_number, _out );
   router.routerProcess();
   //cout << "This is the end!!" << endl;
   return 0;
@@ -31,6 +36,7 @@ struct sockaddr_in Router::getRouterSockAddr(int router_number) {
 }
 
 void Router::routerProcess(){
+  
   router_socket = createRouterSocket();
   cout << "Router: Created a UDP socket on " << MANAGER_PORT+router_number << " with the sock_filedescriptor " << router_socket << endl;
   int manager_socket = createManagerConnection();
@@ -56,10 +62,9 @@ void Router::routerProcess(){
   }
     
   initNetworkMap( router_info.number_nodes );
-  // debugMap();
+  
   int size = 0;
   status = recv(manager_socket, &size, sizeof(size), 0);
-
   if(status == -1) {
     cout << "Failed to recv the size :(" << endl;
     exit(1);
@@ -80,7 +85,8 @@ void Router::routerProcess(){
     primaryIt->second.push_back(table.at(idx));
   }
   
-  status = send(manager_socket, "Ready!", sizeof("Ready!"), 0); 
+  status = send(manager_socket, "Ready!", sizeof("Ready!"), 0);
+  r_out << "~Router ready for action!~" << endl;
   if(status == -1) {
     cout << "Failed to send the ready message :(" << endl;
     exit(1);
@@ -96,6 +102,7 @@ void Router::routerProcess(){
   
   cout << startCommand << endl;
   cout << "Router: Starting to setup UDP connections" << endl;
+  r_out <<"=== :: Router: " << (MANAGER_PORT + router_number) << " Starting to setup UCP connections :: ===" << endl;
     
   /**
    * 
@@ -105,6 +112,7 @@ void Router::routerProcess(){
    */
     
   cout << "Router " << router_number << " connetion table: ";
+  r_out <<"Router: " << (MANAGER_PORT + router_number) << " connection table: " << endl;
   for(int idx = 0; idx < static_cast<int>( table.size() ); idx++) cout << table.at(idx).destination << " ";
   cout << endl;
   for(int idx = 0; idx < static_cast<int>( table.size() ); idx++) {
@@ -113,9 +121,10 @@ void Router::routerProcess(){
     router_connections.push_back( table.at(idx).destination ); // *adding destination connections*
     status = sendto(router_socket, &send_val, sizeof(int), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr));
     if(status == -1) {
-     //perror("sendto error:");   
+      //perror("sendto error:");   
     }
     cout << "router " << router_number << " connecting with " << table.at(idx).destination << endl;
+    r_out <<"Router: " << (MANAGER_PORT + router_number) << " connection with " << table.at(idx).destination <<  endl;
   }
     
   for(int idx = 0; idx < router_info.number_incoming_connections; idx++) {
@@ -126,12 +135,13 @@ void Router::routerProcess(){
     status = recvfrom(router_socket, &recv_val, sizeof(int), 0, &recvFromAddr, &recvFromAddrSize);
     //router_connections.push_back( recv_val ); // *adding incoming connections*
     if(status == -1) {
-     //perror("recvfrom error:");   
+      //perror("recvfrom error:");   
     }
     if(DEBUG) cout << "Router["<< router_number << "]: recv_val: " << recv_val << endl; 
   }
   
   cout << " Router " << router_number << " done waiting. " << endl;
+  r_out << "Router: " << (MANAGER_PORT + router_number) << " done waiting." <<  endl;
     
   int setup_complete = DISTRIBUTION_PHASE;
   status = send(manager_socket, &setup_complete, sizeof(router_number), 0);
@@ -166,9 +176,6 @@ void Router::routerProcess(){
     
   }
 
-
-
-  
   while( !netWrkTableFull() ){
 
     debugMap();
@@ -179,12 +186,12 @@ void Router::routerProcess(){
     recvfrom( router_socket, &temp[0], (sizeof(char)*4096), 0, (struct sockaddr*)&recvFromAddr, &recvFromAddrSize );
 
     /*
-    if(DEBUG){
+      if(DEBUG){
       cout << "size of temp LSP vector = " << static_cast<int>(temp.size()) << endl;
       for(int i = 0; i < static_cast<int>(temp.size()); i++){
-	if( !(temp.at(i).source == 0 && temp.at(i).destination == 0 && temp.at(i).cost == 0) ) cout << temp.at(i).source << " " << temp.at(i).destination << " " << temp.at(i).cost << endl;
+      if( !(temp.at(i).source == 0 && temp.at(i).destination == 0 && temp.at(i).cost == 0) ) cout << temp.at(i).source << " " << temp.at(i).destination << " " << temp.at(i).cost << endl;
       }
-    }
+      }
     */
 
     int src = temp.at(0).source;
@@ -218,107 +225,121 @@ void Router::routerProcess(){
     
     
   } // end of while
-    adjacency_list_t adjacency_list(router_info.number_nodes);
-   for(const auto &ourMap: network_map){
-       for(int idx = 0; idx < static_cast<int>(ourMap.second.size()); idx++) {
-           LSP dest_lsp = ourMap.second.at(idx);
-           int target = dest_lsp.destination;
-           int weight = dest_lsp.cost;
-           adjacency_list[ourMap.first].push_back(neighbor(target,weight));
-       }
+  adjacency_list_t adjacency_list(router_info.number_nodes);
+  for(const auto &ourMap: network_map){
+    for(int idx = 0; idx < static_cast<int>(ourMap.second.size()); idx++) {
+      LSP dest_lsp = ourMap.second.at(idx);
+      int target = dest_lsp.destination;
+      int weight = dest_lsp.cost;
+      adjacency_list[ourMap.first].push_back(neighbor(target,weight));
+    }
   }
-    std::vector<weight_t> min_distance;
-    std::vector<vertex_t> previous;
-    DijkstraComputePaths(router_number, adjacency_list, min_distance, previous);
-    list<vertex_t> path;
-    
-    int ready = FINAL_PHASE;
-    cout << "Router[" << router_number << "] IS READY FOR FINAL PHASE" << endl;
-    status = send(manager_socket, &ready, sizeof(ready), 0);
-    
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 500;
-    
-    /**
-     * Clears the buffer
-     */
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(router_socket, &readfds);
-    while(select(router_socket+1, &readfds, NULL, NULL,  &tv) > 0) {
-        struct sockaddr recvFromAddr;
-        socklen_t recvFromAddrSize;
-       char buffer[4096];
-       recvfrom(router_socket, buffer, sizeof(buffer), 0, &recvFromAddr, &recvFromAddrSize);
-    }
-    
-    cout << "Router " << router_number << " cleared it's buffer." << endl; 
-    
-    int msg_size = 0;
-    status = recv(manager_socket, &msg_size, sizeof(msg_size), 0);
-    if(status == -1) {
-        cout << "Failed to recv the msg_size :(" << endl;
-        exit(1);
-    }
+  std::vector<weight_t> min_distance;
+  std::vector<vertex_t> previous;
+  DijkstraComputePaths(router_number, adjacency_list, min_distance, previous);
+  list<vertex_t> path;
 
-    cout << "msg_size: " << msg_size << " --- router_number" << router_number << endl;
-    vector<Packet> messages(msg_size);
+  // PRINT OUT DIJKSTRA PATH TO FILE HERE:
+  for(int idx = 0; idx < router_info.number_nodes; idx++){
+    path = DijkstraGetShortestPathTo( router_number, previous );
+    auto path_front = path.begin();
+    std::advance(path_front, 1);
+    int next_hop = *path_front;
+    r_out << router_number << "-> " << next_hop << endl;
+    // std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
+  }
+  
+  int ready = FINAL_PHASE;
+  cout << "Router[" << router_number << "] IS READY FOR FINAL PHASE" << endl;
+  status = send(manager_socket, &ready, sizeof(ready), 0);
     
-    if(msg_size != 0) {
-        status = recv(manager_socket, &messages[0], sizeof(Packet)*msg_size, 0);
-        if(status == -1) {
-        cout << "Failed to recv the LSP vector :(" << endl;
-        exit(1);
-        }
-        cout << "Router[" << router_number << "] has got messages" << endl;
+  struct timeval tv;
+  tv.tv_sec = 0;
+  tv.tv_usec = 500;
+    
+  /**
+   * Clears the buffer
+   */
+  fd_set readfds;
+  FD_ZERO(&readfds);
+  FD_SET(router_socket, &readfds);
+  while(select(router_socket+1, &readfds, NULL, NULL,  &tv) > 0) {
+    struct sockaddr recvFromAddr;
+    socklen_t recvFromAddrSize;
+    char buffer[4096];
+    recvfrom(router_socket, buffer, sizeof(buffer), 0, &recvFromAddr, &recvFromAddrSize);
+  }
+    
+  cout << "Router " << router_number << " cleared it's buffer." << endl; 
+    
+  int msg_size = 0;
+  status = recv(manager_socket, &msg_size, sizeof(msg_size), 0);
+  if(status == -1) {
+    cout << "Failed to recv the msg_size :(" << endl;
+    exit(1);
+  }
+
+  cout << "msg_size: " << msg_size << " --- router_number" << router_number << endl;
+  vector<Packet> messages(msg_size);
+    
+  if(msg_size != 0) {
+    status = recv(manager_socket, &messages[0], sizeof(Packet)*msg_size, 0);
+    if(status == -1) {
+      cout << "Failed to recv the LSP vector :(" << endl;
+      exit(1);
     }
+    cout << "Router[" << router_number << "] has got messages" << endl;
+    r_out << "Router: " << (MANAGER_PORT + router_number) << " has recieved packet form manager." << endl;
+  }
     
-    for(int idx = 0; idx < msg_size; idx++) {
-        Packet sendMessage = messages.at(idx);
-            path = DijkstraGetShortestPathTo(sendMessage.dest, previous);
-            auto path_front = path.begin();
-            std::advance(path_front, 1);
-            int next_hop = *path_front;
-            struct sockaddr_in sendToAddr = getRouterSockAddr(next_hop);
-            sendto(router_socket, &sendMessage, sizeof(sendMessage), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr) );
+  for(int idx = 0; idx < msg_size; idx++) {
+    Packet sendMessage = messages.at(idx);
+    path = DijkstraGetShortestPathTo(sendMessage.dest, previous);
+    auto path_front = path.begin();
+    std::advance(path_front, 1);
+    int next_hop = *path_front;
+    struct sockaddr_in sendToAddr = getRouterSockAddr(next_hop);
+    sendto(router_socket, &sendMessage, sizeof(sendMessage), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr) );
+  }
+    
+  while(true) {
+    Packet recv_packet;
+    struct sockaddr recvFromAddr;
+    socklen_t recvFromAddrSize;
+    recvfrom(router_socket, &recv_packet, sizeof(recv_packet), 0, &recvFromAddr, &recvFromAddrSize);
+    if(recv_packet.dest == router_number) {
+      pthread_t threadId;
+      pthread_create(&threadId, NULL, notify_manager, (void*)&manager_socket);
+      cout << "(" << recv_packet.src << "," << recv_packet.dest << ")" << endl;
+    } else {
+      path = DijkstraGetShortestPathTo(recv_packet.dest, previous);
+      auto path_front = path.begin();
+      std::advance(path_front, 1);
+      int next_hop = *path_front;
+      cout << router_number << " to " << recv_packet.dest << " via "; 
+      std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
+      //cout << " next_hop: " << next_hop << endl;
+      cout << endl;
+      struct sockaddr_in sendToAddr = getRouterSockAddr(next_hop);
+      // int send_val = router_number;
+      sendto( router_socket, &recv_packet, sizeof(recv_packet), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr) );
+      //cout << "Sent from " << router_number << " to " << next_hop << endl; 
+      //exit(1);
     }
-    
-    while(true) {
-        Packet recv_packet;
-        struct sockaddr recvFromAddr;
-        socklen_t recvFromAddrSize;
-        recvfrom(router_socket, &recv_packet, sizeof(recv_packet), 0, &recvFromAddr, &recvFromAddrSize);
-        if(recv_packet.dest == router_number) {
-            pthread_t threadId;
-            pthread_create(&threadId, NULL, notify_manager, (void*)&manager_socket);
-            cout << "(" << recv_packet.src << "," << recv_packet.dest << ")" << endl;
-        } else {
-            path = DijkstraGetShortestPathTo(recv_packet.dest, previous);
-            auto path_front = path.begin();
-            std::advance(path_front, 1);
-            int next_hop = *path_front;
-            cout << router_number << " to " << recv_packet.dest << " via "; 
-            std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
-            //cout << " next_hop: " << next_hop << endl;
-            cout << endl;
-            struct sockaddr_in sendToAddr = getRouterSockAddr(next_hop);
-            // int send_val = router_number;
-            sendto( router_socket, &recv_packet, sizeof(recv_packet), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr) );
-            //cout << "Sent from " << router_number << " to " << next_hop << endl; 
-            //exit(1);
-        }
-    }
-    
-}
+  }
+
+  // *NOW* close the router ofstream
+  r_out.close();
+  
+} // end of routerProcess()
 
 void* notify_manager(void* args) {
   int manager_socket = *(int*)args;
   int done = DONE_PHASE;
   int status = send(manager_socket, &done, sizeof(done), 0);
   if(status == -1) {
-        perror("Error: ");
-        exit(1);
+    perror("Error: ");
+    exit(1);
   }
   //cout << "Sending message to " << manager_socket << endl;
 }
@@ -392,54 +413,52 @@ void Router::debugMap() {
 
 /* v CODE TAKEN FROM https://rosettacode.org/wiki/Dijkstra's_algorithm#C.2B.2B v */
 void Router::DijkstraComputePaths(vertex_t source,
-                          const adjacency_list_t &adjacency_list,
-                          std::vector<weight_t> &min_distance,
-                          std::vector<vertex_t> &previous)
+				  const adjacency_list_t &adjacency_list,
+				  std::vector<weight_t> &min_distance,
+				  std::vector<vertex_t> &previous)
 {
-    int n = adjacency_list.size();
-    min_distance.clear();
-    min_distance.resize(n, max_weight);
-    min_distance[source] = 0;
-    previous.clear();
-    previous.resize(n, -1);
-    std::set<std::pair<weight_t, vertex_t> > vertex_queue;
-    vertex_queue.insert(std::make_pair(min_distance[source], source));
+  int n = adjacency_list.size();
+  min_distance.clear();
+  min_distance.resize(n, max_weight);
+  min_distance[source] = 0;
+  previous.clear();
+  previous.resize(n, -1);
+  std::set<std::pair<weight_t, vertex_t> > vertex_queue;
+  vertex_queue.insert(std::make_pair(min_distance[source], source));
  
-    while (!vertex_queue.empty()) 
+  while (!vertex_queue.empty()) 
     {
-        weight_t dist = vertex_queue.begin()->first;
-        vertex_t u = vertex_queue.begin()->second;
-        vertex_queue.erase(vertex_queue.begin());
+      weight_t dist = vertex_queue.begin()->first;
+      vertex_t u = vertex_queue.begin()->second;
+      vertex_queue.erase(vertex_queue.begin());
  
-        // Visit each edge exiting u
-	const std::vector<neighbor> &neighbors = adjacency_list[u];
-        for (std::vector<neighbor>::const_iterator neighbor_iter = neighbors.begin();
-             neighbor_iter != neighbors.end();
-             neighbor_iter++)
+      // Visit each edge exiting u
+      const std::vector<neighbor> &neighbors = adjacency_list[u];
+      for (std::vector<neighbor>::const_iterator neighbor_iter = neighbors.begin();
+	   neighbor_iter != neighbors.end();
+	   neighbor_iter++)
         {
-            vertex_t v = neighbor_iter->target;
-            weight_t weight = neighbor_iter->weight;
-            weight_t distance_through_u = dist + weight;
-	    if (distance_through_u < min_distance[v]) {
-	        vertex_queue.erase(std::make_pair(min_distance[v], v));
+	  vertex_t v = neighbor_iter->target;
+	  weight_t weight = neighbor_iter->weight;
+	  weight_t distance_through_u = dist + weight;
+	  if (distance_through_u < min_distance[v]) {
+	    vertex_queue.erase(std::make_pair(min_distance[v], v));
  
-	        min_distance[v] = distance_through_u;
-	        previous[v] = u;
-	        vertex_queue.insert(std::make_pair(min_distance[v], v));
+	    min_distance[v] = distance_through_u;
+	    previous[v] = u;
+	    vertex_queue.insert(std::make_pair(min_distance[v], v));
  
-	    }
+	  }
  
         }
     }
 }
  
  
-std::list<vertex_t> Router::DijkstraGetShortestPathTo(
-    vertex_t vertex, const std::vector<vertex_t> &previous)
-{
-    std::list<vertex_t> path;
-    for ( ; vertex != -1; vertex = previous[vertex])
-        path.push_front(vertex);
-    return path;
+std::list<vertex_t> Router::DijkstraGetShortestPathTo( vertex_t vertex, const std::vector<vertex_t> &previous ){
+  std::list<vertex_t> path;
+  for ( ; vertex != -1; vertex = previous[vertex])
+    path.push_front(vertex);
+  return path;
 }
 /* ^ CODE TAKEN FROM https://rosettacode.org/wiki/Dijkstra's_algorithm#C.2B.2B ^ */
