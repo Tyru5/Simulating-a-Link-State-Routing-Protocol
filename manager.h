@@ -22,6 +22,7 @@
 #include <sstream>
 #include <map>
 #include <tuple>
+#include <chrono> // for nano-seconds
 
 // For Fork() -- Child processes
 #include <sys/types.h>
@@ -31,7 +32,7 @@
 using std::string;
 using std::vector;
 using std::tuple;
-
+using std::ofstream;
 
 void handle_router_connections(int sock_fd);
  
@@ -44,8 +45,8 @@ class Manager {
   // public member funcitons:
   void parseInputFile();
   int createRouterListener( int port );
-  void spawnRouters();
-  void configureRouters();
+  void spawnRouters( ofstream& ofstr );
+  void configureRouters( ofstream& ofstr );
   void debugMap();
   int getNumberOfIncomingConnections(const int router_number);
   void parseMessageFile();

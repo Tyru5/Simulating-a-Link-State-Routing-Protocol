@@ -13,6 +13,9 @@ int main(int argc, char* argv[]){
   /* The network is managed by a process called the manager. 
      The manager takes as argument a single file. You will run the manager as follows.
   */
+
+  ofstream m_out( "manager.out" );
+  if( !m_out ) cout << "Sorry! Couldn't write out from manager! " << endl;
   
   Manager network_manager( argv[1], argv[2] );
   network_manager.parseInputFile();
@@ -21,10 +24,11 @@ int main(int argc, char* argv[]){
   network_manager.createRouterListener(MANAGER_PORT);
   
   // Spawn each router for the Network Topology:
-  network_manager.spawnRouters();
-  network_manager.configureRouters();
+
+  network_manager.spawnRouters( m_out );
+  usleep(1000);
+  network_manager.configureRouters( m_out );
   network_manager.waitForChildren();
-  
   
   return 0;
 }
@@ -45,7 +49,8 @@ int Manager::getNumberOfIncomingConnections(const int router_number) {
   return connections;
 }
 
-void Manager::configureRouters() {
+void Manager::configureRouters( ofstream& ofstr ) {
+  
   clientStatus.resize(num_nodes);
   
   // Start phase 1: Send connection vectors 
@@ -95,21 +100,33 @@ void Manager::configureRouters() {
   char go[10];
   memset( go, 0, sizeof(go) );
   strcpy( go, "Go!");
+
+  ofstr << "===== :: End Of Spawning Routers :: ===== " << endl << endl;
+  ofstr << "=== :: Letting The Routers know they can start setting up UDP connections :: ===" << endl;
   
   // Start phase 2: setting up UDP connections
   for(int idx = 0; idx < num_nodes; idx++) {
+    auto start = chrono::high_resolution_clock::now(); // start timer
     int client_fd = get<1>(clients.at(idx));
     send(client_fd, go, sizeof(go), 0);
+    auto finish = chrono::high_resolution_clock::now(); // finish timer
+    ofstr << "Manager sending ACK @ time (ns): " << chrono::duration_cast<chrono::nanoseconds>(finish-start).count() << " with ACK message: " << go << endl;
   }
   
   /* END OF PHASE 2*/
   for(int idx = 0; idx < num_nodes; idx++) {
+    auto start = chrono::high_resolution_clock::now(); // start timer
     int client_fd = get<1>(clients.at(idx));
     int recv_status = 0;
     recv(client_fd, &recv_status, sizeof(recv_status), 0);
-    cout << recv_status << endl;
+    auto finish = chrono::high_resolution_clock::now(); // finish timer
+    ofstr << "Router " << (MANAGER_PORT + idx) << " send ACK back @ time (ns): " << chrono::duration_cast<chrono::nanoseconds>(finish-start).count() << " with ACK val of: " << recv_status << endl;
+    // cout << recv_status << endl;
   }
 
+  ofstr << "=== :: End of Letting The Routers know they can start setting up UDP connections :: ===" << endl << endl;;
+  ofstr << "=== :: Now Messages :: === " << endl;
+  
   /*START OF PHASE 3*/
   for(int idx = 0; idx < num_nodes; idx++) {
     int client_fd = get<1>(clients.at(idx));
@@ -130,9 +147,9 @@ void Manager::configureRouters() {
     int client_fd = get<1>(clients.at(idx));
     vector<Packet> messagesToSend;
     for(int i = 0; i < static_cast<int>(messages.size()); i++) {
-        if(messages.at(i).src == get<0>(clients.at(idx))) {
-            messagesToSend.push_back(messages.at(i));   
-        }
+      if(messages.at(i).src == get<0>(clients.at(idx))) {
+	messagesToSend.push_back(messages.at(i));   
+      }
     }
     
     int msg_size = messagesToSend.size();
@@ -141,27 +158,35 @@ void Manager::configureRouters() {
 
     int expected_msg = 0;
     for(int i = 0; i < static_cast<int>(messages.size()); i++) {
-        if(messages.at(i).dest == get<0>(clients.at(idx))) {
-            expected_msg++;  
-        }
+      if(messages.at(i).dest == get<0>(clients.at(idx))) {
+	expected_msg++;  
+      }
     }
     messagesExpected.push_back(make_tuple(client_fd, expected_msg));
   }
   cout << "Manager waiting for messages" << endl;
-    for(int idx = 0; idx < static_cast<int>(messagesExpected.size()); idx++) {
+  ofstr <<"~Manager waiting for messages~" << endl;
+  for(int idx = 0; idx < static_cast<int>(messagesExpected.size()); idx++) {
     int expect_count = get<1>(messagesExpected.at(idx));
     int client_fd = get<0>(messagesExpected.at(idx));
-        cout << "Manager recv from " << client_fd << " for " << expect_count << " messages" << endl;
+    cout << "Manager recv from " << client_fd << " for " << expect_count << " messages" << endl;
+    ofstr << "Manager recv from " << client_fd << " for " << expect_count << " messages" << endl; 
   }
   for(int idx = 0; idx < static_cast<int>(messagesExpected.size()); idx++) {
     int expect_count = get<1>(messagesExpected.at(idx));
     int client_fd = get<0>(messagesExpected.at(idx));
     for(int i = 0; i < expect_count; i++) {
-        int recv_status = 0;
-        recv(client_fd, &recv_status, sizeof(recv_status), 0);
-        cout << "Manager recv from " << client_fd << endl;
+      int recv_status = 0;
+      recv(client_fd, &recv_status, sizeof(recv_status), 0);
+      cout << "Manager recv from " << client_fd;
+      ofstr << "Manager recv from router: " << client_fd << endl; 
     }
   }
+
+  ofstr << "=== :: Manager has recieved all Messages and has sent the packet through sucessfully! :: === " << endl << endl;
+  
+  // *NOW* closing the ofstream:
+  ofstr.close();
   
 }
 
@@ -261,34 +286,34 @@ void Manager::parseInputFile(){
 void Manager::parseMessageFile(){
     
     
-    ifstream mfile( message_file  );
+  ifstream mfile( message_file  );
   
-    if( !mfile ){
-        cout << "Sorry! Could open [" << message_file << "] !" << endl;
-    }
+  if( !mfile ){
+    cout << "Sorry! Could open [" << message_file << "] !" << endl;
+  }
     
-    string line;
+  string line;
     
-    Packet message_packet;
-    stringstream message_stream;
-    int src,dest;
-    while( getline( mfile, line ) ){
+  Packet message_packet;
+  stringstream message_stream;
+  int src,dest;
+  while( getline( mfile, line ) ){
 
-        // cout << message_stream.str() << endl;
+    // cout << message_stream.str() << endl;
 
-        message_stream << line;
-        message_stream >> src >> dest;
-        message_packet.src = src;
-        message_packet.dest = dest;
+    message_stream << line;
+    message_stream >> src >> dest;
+    message_packet.src = src;
+    message_packet.dest = dest;
         
-        messages.push_back( message_packet );
-            // clearing the stringstream:
-        message_stream.str( string() );
-        message_stream.clear();
+    messages.push_back( message_packet );
+    // clearing the stringstream:
+    message_stream.str( string() );
+    message_stream.clear();
     
   } // end of while statement.
   
-  for(int i =0; i < messages.size(); i++) cout << messages.at(i).src << " : " << messages.at(i).dest << endl;
+  for(int i =0; i < static_cast<int>(messages.size()); i++) cout << messages.at(i).src << " : " << messages.at(i).dest << endl;
     
 }
 
@@ -331,16 +356,19 @@ int Manager::createRouterListener(int port) {
 }
 
 // The manager will spawn one Unix process for each router in the network.
-void Manager::spawnRouters(){
+void Manager::spawnRouters( ofstream& ofstr ){
 
-
+  ofstr << "===== :: Spawning Routers :: ===== " << endl;
+  
   for(int i = 0; i < num_nodes; i++){
 
     //delcaring and initializing the fork sytem call:
     //fork a child process
+
+    auto start = chrono::high_resolution_clock::now(); // start timer
     pid_t routerN = fork();
     child_pross.push_back( routerN );
-
+    auto finish = chrono::high_resolution_clock::now(); // finish timer
 
     //Checking -> Errors and parent or child status:
     if( routerN < 0){
@@ -353,12 +381,12 @@ void Manager::spawnRouters(){
       
       //a return value of zero on a fork() means that it is running in new child process. On success, the PID of the child is returned in the parent, and 0 is returned in the child
       //run the exec() unix command to run the expoxch.c program.
-      
+
+      ofstr << "Spawned router (child process) @ time (ns): " << chrono::duration_cast<chrono::nanoseconds>(finish-start).count() << " with router id: " << MANAGER_PORT + i << endl;
+    
       execl("./router","router", std::to_string(i).c_str(), NULL);
       
     }
-    //else{/*parent process*/
-    //}
     
   } // end of for
   
