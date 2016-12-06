@@ -111,7 +111,10 @@ void Router::routerProcess(){
     struct sockaddr_in sendToAddr = getRouterSockAddr(table.at(idx).destination);
     int send_val = router_number;
     router_connections.push_back( table.at(idx).destination ); // *adding destination connections*
-    sendto(router_socket, &send_val, sizeof(int), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr));
+    status = sendto(router_socket, &send_val, sizeof(int), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr));
+    if(status == -1) {
+     //perror("sendto error:");   
+    }
     cout << "router " << router_number << " connecting with " << table.at(idx).destination << endl;
   }
     
@@ -120,8 +123,11 @@ void Router::routerProcess(){
     int recv_val = 0;
     struct sockaddr recvFromAddr;
     socklen_t recvFromAddrSize;
-    recvfrom(router_socket, &recv_val, sizeof(int), 0, &recvFromAddr, &recvFromAddrSize);
+    status = recvfrom(router_socket, &recv_val, sizeof(int), 0, &recvFromAddr, &recvFromAddrSize);
     //router_connections.push_back( recv_val ); // *adding incoming connections*
+    if(status == -1) {
+     //perror("recvfrom error:");   
+    }
     if(DEBUG) cout << "Router["<< router_number << "]: recv_val: " << recv_val << endl; 
   }
   
