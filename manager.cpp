@@ -23,6 +23,7 @@ int main(int argc, char* argv[]){
   // Spawn each router for the Network Topology:
   network_manager.spawnRouters();
   network_manager.configureRouters();
+  network_manager.waitForChildren();
   
   
   return 0;
@@ -67,7 +68,7 @@ void Manager::configureRouters() {
     int size = router_nodes.size();
 	
     route_table.clear();
-    ROUTER_INFO router_info;
+    ROUTER_INFO router_info;            //std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
     
     router_info.number_incoming_connections = getNumberOfIncomingConnections(router_number);
     router_info.number_nodes = num_nodes;
@@ -158,7 +159,7 @@ void Manager::configureRouters() {
     for(int i = 0; i < expect_count; i++) {
         int recv_status = 0;
         recv(client_fd, &recv_status, sizeof(recv_status), 0);
-        cout << "Manager recv from " << client_fd;
+        cout << "Manager recv from " << client_fd << endl;
     }
   }
   
@@ -294,19 +295,8 @@ void Manager::parseMessageFile(){
 void Manager::waitForChildren(){
   for( int idx = 0; idx < static_cast<int>(child_pross.size()); idx++){
     //run the wait() unix system call that waits for a program to finish/change state
-    printf("IN PARENT:Child's PID =  %d\n", child_pross[idx] );
-    int status;
-	waitpid( child_pross[idx], &status, 0 );
-	      //checking status codes:
-	      if ( WIFEXITED(status) ){ // returns true if the child terminated normally
-            if(status == 0){
-            printf("IN PARENT: Child's exit code: %d (OK)\n", WEXITSTATUS(status));
-	      }
-            else{
-            printf("IN PARENT: Child's exit code: %d (error)\n", WEXITSTATUS(status));
-            }
-	      }
-	      printf("IN PARENT: Parent (PID = %d): done\n",getppid());
+    printf("KILLING PID =  %d\n", child_pross[idx] );
+	kill( child_pross[idx], 9 );
   }   
 }
 

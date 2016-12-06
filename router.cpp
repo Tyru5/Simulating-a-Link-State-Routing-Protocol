@@ -104,11 +104,15 @@ void Router::routerProcess(){
    * 
    */
     
+  cout << "Router " << router_number << " connetion table: ";
+  for(int idx = 0; idx < static_cast<int>( table.size() ); idx++) cout << table.at(idx).destination << " ";
+  cout << endl;
   for(int idx = 0; idx < static_cast<int>( table.size() ); idx++) {
     struct sockaddr_in sendToAddr = getRouterSockAddr(table.at(idx).destination);
     int send_val = router_number;
     router_connections.push_back( table.at(idx).destination ); // *adding destination connections*
     sendto(router_socket, &send_val, sizeof(int), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr));
+    cout << "router " << router_number << " connecting with " << table.at(idx).destination << endl;
   }
     
   for(int idx = 0; idx < router_info.number_incoming_connections; idx++) {
@@ -117,9 +121,11 @@ void Router::routerProcess(){
     struct sockaddr recvFromAddr;
     socklen_t recvFromAddrSize;
     recvfrom(router_socket, &recv_val, sizeof(int), 0, &recvFromAddr, &recvFromAddrSize);
-    router_connections.push_back( recv_val ); // *adding incoming connections*
+    //router_connections.push_back( recv_val ); // *adding incoming connections*
     if(DEBUG) cout << "Router["<< router_number << "]: recv_val: " << recv_val << endl; 
   }
+  
+  cout << " Router " << router_number << " done waiting. " << endl;
     
   int setup_complete = DISTRIBUTION_PHASE;
   status = send(manager_socket, &setup_complete, sizeof(router_number), 0);
@@ -219,20 +225,29 @@ void Router::routerProcess(){
     std::vector<vertex_t> previous;
     DijkstraComputePaths(router_number, adjacency_list, min_distance, previous);
     list<vertex_t> path;
- /*   
-        std::cout << "Path (" << router_number << ",1) : ";
-    std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
-    std::cout << std::endl;
-    
-    path = DijkstraGetShortestPathTo(2, previous);
-    std::cout << "Path (" << router_number << ",2) : ";
-    std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
-    std::cout << std::endl;
-    */
     
     int ready = FINAL_PHASE;
     cout << "Router[" << router_number << "] IS READY FOR FINAL PHASE" << endl;
     status = send(manager_socket, &ready, sizeof(ready), 0);
+    
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 500;
+    
+    /**
+     * Clears the buffer
+     */
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(router_socket, &readfds);
+    while(select(router_socket+1, &readfds, NULL, NULL,  &tv) > 0) {
+        struct sockaddr recvFromAddr;
+        socklen_t recvFromAddrSize;
+       char buffer[4096];
+       recvfrom(router_socket, buffer, sizeof(buffer), 0, &recvFromAddr, &recvFromAddrSize);
+    }
+    
+    cout << "Router " << router_number << " cleared it's buffer." << endl; 
     
     int msg_size = 0;
     status = recv(manager_socket, &msg_size, sizeof(msg_size), 0);
@@ -240,7 +255,6 @@ void Router::routerProcess(){
         cout << "Failed to recv the msg_size :(" << endl;
         exit(1);
     }
-    fflush(manager_socket);
 
     cout << "msg_size: " << msg_size << " --- router_number" << router_number << endl;
     vector<Packet> messages(msg_size);
@@ -252,6 +266,16 @@ void Router::routerProcess(){
         exit(1);
         }
         cout << "Router[" << router_number << "] has got messages" << endl;
+    }
+    
+    for(int idx = 0; idx < msg_size; idx++) {
+        Packet sendMessage = messages.at(idx);
+            path = DijkstraGetShortestPathTo(sendMessage.dest, previous);
+            auto path_front = path.begin();
+            std::advance(path_front, 1);
+            int next_hop = *path_front;
+            struct sockaddr_in sendToAddr = getRouterSockAddr(next_hop);
+            sendto(router_socket, &sendMessage, sizeof(sendMessage), 0, (struct sockaddr*)&sendToAddr, sizeof(sendToAddr) );
     }
     
     while(true) {
@@ -336,7 +360,12 @@ int Router::createRouterSocket() {
   server.sin_family = AF_INET;
   server.sin_port = htons(port);
   inet_pton(AF_INET, "127.0.0.1", &server.sin_addr.s_addr);
-    
+  
+  struct timeval tv;
+  tv.tv_sec = 5;
+  tv.tv_usec = 0;
+  setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv));
+  
   if( bind(socket_desc, (struct sockaddr *) &server, sizeof(server)) == -1 ){ // means it failed to bind... 0 on success, -1 if not
     cout << "Couldn't bind the port to the socket!" << endl;
     exit(1);
