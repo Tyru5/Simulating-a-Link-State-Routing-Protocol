@@ -12,12 +12,13 @@ int main(int argc, char* argv[]){
 
   /* The network is managed by a process called the manager. 
      The manager takes as argument a single file. You will run the manager as follows.
-   */
+  */
   
   Manager network_manager( argv[1] );
   network_manager.parseInputFile();
   
-  network_manager.createRouterListener(MANAGER_PORT);  
+  network_manager.createRouterListener(MANAGER_PORT);
+  
   // Spawn each router for the Network Topology:
   network_manager.spawnRouters();
   network_manager.configureRouters();
@@ -36,8 +37,8 @@ void Manager::configureRouters() {
     socklen_t clientLength = sizeof(client);
     int client_fd = accept(sock_fd, (struct sockaddr*)&client, &clientLength);
     if(client_fd < 0) {
-        perror("ERROR on accept");
-        exit(1);
+      perror("ERROR on accept");
+      exit(1);
     }
     clients.push_back(client_fd);
     cout << "Manager: client_fd: " << client_fd << endl;
@@ -47,33 +48,34 @@ void Manager::configureRouters() {
     cout << "Manager: Managing: " << router_number << endl;
     
     
-	int numberOfIncomingConnections = 0;
+    int numberOfIncomingConnections = 0;
 	
-	int size = 3;
+    int size = 3;
 	
     route_table.clear();
     for(int i = 0; i < static_cast<int>(network_table.size()); i++){		 
-		for(int c = 0; c < static_cast<int>(network_table[i].size() - 1); c++){
-			//cout << tbl[i][c] << " ";
-			if(network_table[i][c] == router_number) {
-				vector<int> table = network_table.at(i);
-				cout<<"Manager: Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
-				//int size = table.size();
+      for(int c = 0; c < static_cast<int>(network_table[i].size() - 1); c++){
+	//cout << tbl[i][c] << " ";
+	if(network_table[i][c] == router_number) {
+	  vector<int> table = network_table.at(i);
+	  cout<<"Manager: Adding associative table: " << table[0] << " " << table[1]<< " " << table[2] <<" to: "<< router_number << endl;
+	  //int size = table.size();
 						
-				numberOfIncomingConnections++;
-				route_table.push_back(table);
-			} 
+	  numberOfIncomingConnections++;
+	  route_table.push_back(table);
+	} 
 			
-		}
+      }
 		
-	}
+    }
 	
-	//How many tuples are being sent to the router?	
-	cout<<"Manager: numberOfIncomingConnections: " << numberOfIncomingConnections<<endl;
+    //How many tuples are being sent to the router?	
+    cout<<"Manager: numberOfIncomingConnections: " << numberOfIncomingConnections<<endl;
     send(client_fd, &numberOfIncomingConnections, sizeof(numberOfIncomingConnections), 0);
-	cout << "Manager: table.size(): " << size << endl;	
-	send(client_fd, &size, sizeof(size), 0);
+    cout << "Manager: table.size(): " << size << endl;	
+    send(client_fd, &size, sizeof(size), 0);
 	
+
 	//For every tuple send it to the router 
 	if(!route_table.empty()) {
 		cout<<"Manager: Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
@@ -89,18 +91,31 @@ void Manager::configureRouters() {
 	} else {
 		cout<<"Manager: Table for " << router_number << " is empty"<<endl;
 	}
+
+    //For every tuple send it to the router 
+    if(!route_table.empty()) {
+      cout<<"Manager: Table for " << router_number << " is not empty.. attempting to send pair"<<endl;
+      for(int j = 0; j< static_cast<int>(route_table.size()); j++){			
+	vector<int> table = route_table.at(j);
+	cout<<"Manager: sending.. " << table[0] << " " << table[1] << " " << table[2] << " to router: " << router_number << endl; 	
+	send(client_fd, &table[0], sizeof(int)*size, 0);
+      }	
+    } else {
+      cout<<"Manager: Table for " << router_number << " is empty"<<endl;
+    }
+
 	
-	/*	
-    char buffer[sizeof("Ready!")];
-    recv(client_fd, &buffer, sizeof(buffer) , 0);
-    clientStatus.at(idx) = SETUP_PHASE;
-  }
+    /*	
+	char buffer[sizeof("Ready!")];
+	recv(client_fd, &buffer, sizeof(buffer) , 0);
+	clientStatus.at(idx) = SETUP_PHASE;
+	}
   
-  // Start phase 2: setting up UDP connections
-  for(int idx = 0; idx < num_nodes; idx++) {
-    int client_fd = clients.at(idx);
-    send(client_fd, "Go!", sizeof("Go!"), 0);
-   */ 
+	// Start phase 2: setting up UDP connections
+	for(int idx = 0; idx < num_nodes; idx++) {
+	int client_fd = clients.at(idx);
+	send(client_fd, "Go!", sizeof("Go!"), 0);
+    */ 
   }
  
   
@@ -176,22 +191,22 @@ void Manager::parseInputFile(){
 }
 
 int Manager::createRouterListener(int port) {
-    sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in server;
-    int one = 1;
+  sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+  struct sockaddr_in server;
+  int one = 1;
 
-    setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int));
-    server.sin_family = AF_INET;
-    server.sin_port = htons(port);
-    inet_pton(AF_INET, "127.0.0.1", &server.sin_addr.s_addr);
+  setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int));
+  server.sin_family = AF_INET;
+  server.sin_port = htons(port);
+  inet_pton(AF_INET, "127.0.0.1", &server.sin_addr.s_addr);
     
-    if( bind(sock_fd, (struct sockaddr *) &server, sizeof(server)) == -1 ){ // means it failed to bind... 0 on success, -1 if not
-      cout << "Couldn't bind the port to the socket!" << endl;
-      exit(1);
-    }
+  if( bind(sock_fd, (struct sockaddr *) &server, sizeof(server)) == -1 ){ // means it failed to bind... 0 on success, -1 if not
+    cout << "Couldn't bind the port to the socket!" << endl;
+    exit(1);
+  }
     
-    listen(sock_fd, 127);
-    return sock_fd;				 
+  listen(sock_fd, 127);
+  return sock_fd;				 
 }
 
 // The manager will spawn one Unix process for each router in the network.
@@ -224,19 +239,19 @@ void Manager::spawnRouters(){
       
       //run the wait() unix system call that waits for a program to finish/change state
       /*      printf("IN PARENT:Child's PID =  %d\n", routerN );
-      int status;
-      waitpid( routerN, &status, 0 );
-      //checking status codes:
-      if ( WIFEXITED(status) ){ // returns true if the child terminated normally
-	if(status == 0){
-	  printf("IN PARENT: Child's exit code: %d (OK)\n", WEXITSTATUS(status));
-	}
-	else{
-	  printf("IN PARENT: Child's exit code: %d (error)\n", WEXITSTATUS(status));
-	}
-      }
-      printf("IN PARENT: Parent (PID = %d): done\n",getppid());
-*/    }
+	      int status;
+	      waitpid( routerN, &status, 0 );
+	      //checking status codes:
+	      if ( WIFEXITED(status) ){ // returns true if the child terminated normally
+	      if(status == 0){
+	      printf("IN PARENT: Child's exit code: %d (OK)\n", WEXITSTATUS(status));
+	      }
+	      else{
+	      printf("IN PARENT: Child's exit code: %d (error)\n", WEXITSTATUS(status));
+	      }
+	      }
+	      printf("IN PARENT: Parent (PID = %d): done\n",getppid());
+      */    }
     
   } // end of for
   
