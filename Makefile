@@ -4,12 +4,14 @@
 
 CXX		= g++
 OBJS		= manager.o router.o
+
 OBJ1		= manager.o
 OBJ2		= router.o
+
 DEBUG		= -g
 CPPFLAGS	= -Wall -std=c++11 -I. -c $(DEBUG) -lpthread 
 
-LDFLAGS		= -Wall $(DEBUG) -lpthread  # order of targets actualy matter 
+LDFLAGS		= -Wall $(DEBUG) -lpthread
 
 EXE             = Tyrus_Malmstrom_Sam_Kramer_Torry_Brelsfold_P3
 
@@ -41,4 +43,4 @@ clean:
 
 package:
 	@echo "Packaging up project directory..."
-	tar -cvf $(EXE).tar *.cpp *.h Makefile
+	tar -cvf $(EXE).tar *.cpp *.h Makefile README.txt messages.txt

@@ -10,10 +10,6 @@ void printNT( const vector< vector<int>>& tbl, const int& edges );
 
 int main(int argc, char* argv[]){
 
-  /* The network is managed by a process called the manager. 
-     The manager takes as argument a single file. You will run the manager as follows.
-  */
-
   ofstream m_out( "manager.out" );
   if( !m_out ) cout << "Sorry! Couldn't write out from manager! " << endl;
   

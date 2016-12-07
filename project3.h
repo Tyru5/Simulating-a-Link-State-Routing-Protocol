@@ -9,8 +9,10 @@
 #define DONE_PHASE 5  
 
 #include <map>
+
 using std::map;
 using std::pair;
+
 typedef struct _LSP {
    int source;
    int destination; 
@@ -28,4 +30,6 @@ typedef struct _PACKET {
  int dest;
  time_t timestamp; 
 } Packet;
-#endif
+
+
+#endif // PROJECT3_H
