@@ -84,9 +84,12 @@ void Router::routerProcess(){
   for(int idx = 0 ;idx < static_cast<int>(table.size()); idx++) {
     primaryIt->second.push_back(table.at(idx));
   }
-  
+
+  auto start = chrono::high_resolution_clock::now(); // start timer
   status = send(manager_socket, "Ready!", sizeof("Ready!"), 0);
-  r_out << "~Router ready for action!~" << endl; // <-- first write out to the file for router.
+  auto finish = chrono::high_resolution_clock::now(); // finish timer
+  r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(finish-start).count() << " Router ready for action!~" << endl; // <-- first write out to the file for router.
+  
   if(status == -1) {
     cout << "Failed to send the ready message :(" << endl;
     exit(1);
@@ -99,10 +102,12 @@ void Router::routerProcess(){
     perror("Error: ");
     exit(1);
   }
-  
+
+  auto start1 = chrono::high_resolution_clock::now();
   cout << startCommand << endl;
-  cout << "Router: Starting to setup UDP connections" << endl;
-  r_out <<"=== :: Router: " << (MANAGER_PORT + router_number) << " Starting to setup UCP connections :: ===" << endl;
+  cout << "Router: Starting to setup UDP connections" << endl;\
+  auto end   = chrono::high_resolution_clock::now();
+  r_out <<"@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end-start1).count() << " === :: Router: " << (MANAGER_PORT + router_number) << " Starting to setup UCP connections :: ===" << endl;
     
   /**
    * 
@@ -110,12 +115,17 @@ void Router::routerProcess(){
    const struct sockaddr *dest_addr, socklen_t addrlen);
    * 
    */
-    
+
+  auto start2 = chrono::high_resolution_clock::now();
   cout << "Router " << router_number << " connetion table: ";
-  r_out <<"Router: " << (MANAGER_PORT + router_number) << " connection table: " << endl;
+  auto end2 = chrono::high_resolution_clock::now();
+  r_out <<"@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end2-start2).count() << " Router:  << " << (MANAGER_PORT + router_number) << " connection table: " << endl;
+  
   for(int idx = 0; idx < static_cast<int>( table.size() ); idx++) cout << table.at(idx).destination << " ";
   cout << endl;
-  for(int idx = 0; idx < static_cast<int>( table.size() ); idx++) {
+
+  auto start3 = chrono::high_resolution_clock::now();
+    for(int idx = 0; idx < static_cast<int>( table.size() ); idx++) {
     struct sockaddr_in sendToAddr = getRouterSockAddr(table.at(idx).destination);
     int send_val = router_number;
     router_connections.push_back( table.at(idx).destination ); // *adding destination connections*
@@ -124,7 +134,8 @@ void Router::routerProcess(){
       //perror("sendto error:");   
     }
     cout << "router " << router_number << " connecting with " << table.at(idx).destination << endl;
-    r_out <<"Router: " << (MANAGER_PORT + router_number) << " connection with " << table.at(idx).destination <<  endl;
+    auto end3 = chrono::high_resolution_clock::now();
+    r_out <<"@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end3-start3).count() << " Router: " << (MANAGER_PORT + router_number) << " connection with " << table.at(idx).destination <<  endl;
   }
     
   for(int idx = 0; idx < router_info.number_incoming_connections; idx++) {
@@ -139,9 +150,11 @@ void Router::routerProcess(){
     }
     if(DEBUG) cout << "Router["<< router_number << "]: recv_val: " << recv_val << endl; 
   }
-  
+
+  auto start4 = chrono::high_resolution_clock::now();
   cout << " Router " << router_number << " done waiting. " << endl;
-  r_out << "Router: " << (MANAGER_PORT + router_number) << " done waiting." <<  endl;
+  auto end4 = chrono::high_resolution_clock::now();
+  r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end4-start4).count() << " Router: " << (MANAGER_PORT + router_number) << " done waiting." <<  endl;
     
   int setup_complete = DISTRIBUTION_PHASE;
   status = send(manager_socket, &setup_complete, sizeof(router_number), 0);
@@ -240,12 +253,14 @@ void Router::routerProcess(){
   list<vertex_t> path;
 
   // PRINT OUT DIJKSTRA PATH TO FILE HERE:
+  auto start5 = chrono::high_resolution_clock::now();
   for(int idx = 0; idx < router_info.number_nodes; idx++){
     path = DijkstraGetShortestPathTo( router_number, previous );
     auto path_front = path.begin();
     std::advance(path_front, 1);
     int next_hop = *path_front;
-    r_out << router_number << "-> " << next_hop << endl;
+    auto end5 = chrono::high_resolution_clock::now();
+    r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end5-start5).count() << " " <<  router_number << "-> " << next_hop << endl;
     // std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
   }
   
@@ -288,8 +303,11 @@ void Router::routerProcess(){
       cout << "Failed to recv the LSP vector :(" << endl;
       exit(1);
     }
+
+    auto start6 = chrono::high_resolution_clock::now();
     cout << "Router[" << router_number << "] has got messages" << endl;
-    r_out << "Router: " << (MANAGER_PORT + router_number) << " has recieved packet from manager." << endl;
+    auto end6 = chrono::high_resolution_clock::now();
+    r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end6-start6).count() << " Router: " << (MANAGER_PORT + router_number) << " has recieved packet from manager." << endl;
   }
     
   for(int idx = 0; idx < msg_size; idx++) {
