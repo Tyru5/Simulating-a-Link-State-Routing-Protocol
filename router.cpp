@@ -86,7 +86,7 @@ void Router::routerProcess(){
   }
   
   status = send(manager_socket, "Ready!", sizeof("Ready!"), 0);
-  r_out << "~Router ready for action!~" << endl;
+  r_out << "~Router ready for action!~" << endl; // <-- first write out to the file for router.
   if(status == -1) {
     cout << "Failed to send the ready message :(" << endl;
     exit(1);
