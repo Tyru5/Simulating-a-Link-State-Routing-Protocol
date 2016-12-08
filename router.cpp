@@ -88,7 +88,7 @@ void Router::routerProcess(){
   auto start = chrono::high_resolution_clock::now(); // start timer
   status = send(manager_socket, "Ready!", sizeof("Ready!"), 0);
   auto finish = chrono::high_resolution_clock::now(); // finish timer
-  r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(finish-start).count() << " Router ready for action!~" << endl; // <-- first write out to the file for router.
+  r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(finish-start).count() << " Router" << (MANAGER_PORT + router_number) <<" ready for action!~" << endl; // <-- first write out to the file for router.
   
   if(status == -1) {
     cout << "Failed to send the ready message :(" << endl;
@@ -107,7 +107,7 @@ void Router::routerProcess(){
   cout << startCommand << endl;
   cout << "Router: Starting to setup UDP connections" << endl;\
   auto end   = chrono::high_resolution_clock::now();
-  r_out <<"@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end-start1).count() << " === :: Router: " << (MANAGER_PORT + router_number) << " Starting to setup UCP connections :: ===" << endl;
+  r_out <<"@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end-start1).count() << " === :: Router" << (MANAGER_PORT + router_number) << " Starting to setup UCP connections :: ===" << endl;
     
   /**
    * 
@@ -119,9 +119,11 @@ void Router::routerProcess(){
   auto start2 = chrono::high_resolution_clock::now();
   cout << "Router " << router_number << " connetion table: ";
   auto end2 = chrono::high_resolution_clock::now();
-  r_out <<"@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end2-start2).count() << " Router:  << " << (MANAGER_PORT + router_number) << " connection table: " << endl;
-  
-  for(int idx = 0; idx < static_cast<int>( table.size() ); idx++) cout << table.at(idx).destination << " ";
+  r_out <<"@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end2-start2).count() << " Router" << (MANAGER_PORT + router_number) << " connection table: " << endl;
+
+  for(int idx = 0; idx < static_cast<int>( table.size() ); idx++){
+    cout << table.at(idx).destination << " ";
+  }
   cout << endl;
 
   auto start3 = chrono::high_resolution_clock::now();
@@ -135,7 +137,7 @@ void Router::routerProcess(){
     }
     cout << "router " << router_number << " connecting with " << table.at(idx).destination << endl;
     auto end3 = chrono::high_resolution_clock::now();
-    r_out <<"@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end3-start3).count() << " Router: " << (MANAGER_PORT + router_number) << " connection with " << table.at(idx).destination <<  endl;
+    r_out <<"\t--> @ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end3-start3).count() << " Router" << (MANAGER_PORT + router_number) << " connection with " << table.at(idx).destination <<  endl;
   }
     
   for(int idx = 0; idx < router_info.number_incoming_connections; idx++) {
@@ -260,7 +262,7 @@ void Router::routerProcess(){
     std::advance(path_front, 1);
     int next_hop = *path_front;
     auto end5 = chrono::high_resolution_clock::now();
-    r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end5-start5).count() << " " <<  router_number << "-> " << next_hop << endl;
+    r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end5-start5).count() << " Router" << ( MANAGER_PORT + router_number ) << "-> " << next_hop << endl;
     // std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
   }
   
@@ -307,7 +309,7 @@ void Router::routerProcess(){
     auto start6 = chrono::high_resolution_clock::now();
     cout << "Router[" << router_number << "] has got messages" << endl;
     auto end6 = chrono::high_resolution_clock::now();
-    r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end6-start6).count() << " Router: " << (MANAGER_PORT + router_number) << " has recieved packet from manager." << endl;
+    r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end6-start6).count() << " Router" << (MANAGER_PORT + router_number) << " has recieved packet from manager." << endl;
   }
     
   for(int idx = 0; idx < msg_size; idx++) {

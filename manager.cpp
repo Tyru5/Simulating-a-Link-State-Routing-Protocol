@@ -161,13 +161,16 @@ void Manager::configureRouters( ofstream& ofstr ) {
     messagesExpected.push_back(make_tuple(client_fd, expected_msg));
   }
   cout << "Manager waiting for messages" << endl;
-  ofstr <<"~Manager waiting for messages~" << endl;
+  ofstr <<"Manager waiting for messages..." << endl;
+  auto start20 = chrono::high_resolution_clock::now(); // start timer
   for(int idx = 0; idx < static_cast<int>(messagesExpected.size()); idx++) {
     int expect_count = get<1>(messagesExpected.at(idx));
     int client_fd = get<0>(messagesExpected.at(idx));
     cout << "Manager recv from " << client_fd << " for " << expect_count << " messages" << endl;
-    ofstr << "Manager recv from " << client_fd << " for " << expect_count << " messages" << endl; 
+    auto end20 = chrono::high_resolution_clock::now(); // start timer
+    ofstr << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end20-start20).count() << " Manager recv from " << client_fd << " for " << expect_count << " messages" << endl; 
   }
+  auto start22 = chrono::high_resolution_clock::now(); // start timer  
   for(int idx = 0; idx < static_cast<int>(messagesExpected.size()); idx++) {
     int expect_count = get<1>(messagesExpected.at(idx));
     int client_fd = get<0>(messagesExpected.at(idx));
@@ -175,7 +178,8 @@ void Manager::configureRouters( ofstream& ofstr ) {
       int recv_status = 0;
       recv(client_fd, &recv_status, sizeof(recv_status), 0);
       cout << "Manager recv from " << client_fd;
-      ofstr << "Manager recv from router: " << client_fd << endl; 
+      auto end22 = chrono::high_resolution_clock::now(); // start timer
+      ofstr << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end22-start22).count() << " Manager recv from router: " << client_fd << endl; 
     }
   }
 
@@ -364,7 +368,6 @@ void Manager::spawnRouters( ofstream& ofstr ){
     auto start = chrono::high_resolution_clock::now(); // start timer
     pid_t routerN = fork();
     child_pross.push_back( routerN );
-    auto finish = chrono::high_resolution_clock::now(); // finish timer
 
     //Checking -> Errors and parent or child status:
     if( routerN < 0){
@@ -378,6 +381,7 @@ void Manager::spawnRouters( ofstream& ofstr ){
       //a return value of zero on a fork() means that it is running in new child process. On success, the PID of the child is returned in the parent, and 0 is returned in the child
       //run the exec() unix command to run the expoxch.c program.
 
+      auto finish = chrono::high_resolution_clock::now(); // finish timer
       ofstr << "Spawned router (child process) @ time (ns): " << chrono::duration_cast<chrono::nanoseconds>(finish-start).count() << " with router id: " << MANAGER_PORT + i << endl;
     
       execl("./router","router", std::to_string(i).c_str(), NULL);
