@@ -9,7 +9,7 @@ OBJ1		= manager.o
 OBJ2		= router.o
 
 DEBUG		= -g
-CPPFLAGS	= -Wall -std=c++11 -I. -c $(DEBUG) -lpthread 
+CPPFLAGS	= -std=c++11 -I. -c $(DEBUG) -lpthread 
 
 LDFLAGS		= -Wall $(DEBUG) -lpthread
 
