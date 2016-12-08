@@ -262,7 +262,8 @@ void Router::routerProcess(){
     std::advance(path_front, 1);
     int next_hop = *path_front;
     auto end5 = chrono::high_resolution_clock::now();
-    r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end5-start5).count() << " Router" << ( MANAGER_PORT + router_number ) << "-> " << next_hop << endl;
+    r_out << "Shortest Path from Router" << (MANAGER_PORT + router_number) << " to other Routers is = " << endl;
+    r_out << "@ time (ns):" << chrono::duration_cast<chrono::nanoseconds>(end5-start5).count() << "\t--> " << next_hop << endl;
     // std::copy(path.begin(), path.end(), std::ostream_iterator<vertex_t>(std::cout, " "));
   }
   
